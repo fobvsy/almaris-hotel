@@ -15,22 +15,49 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     }
 
-    // 2. Navbar Scroll Effect
+    // 2. Navbar Scroll Effect & Scrollspy
     const navbar = document.getElementById('navbar');
+    const sections = document.querySelectorAll('section, footer');
+    const navLinks = document.querySelectorAll('.navbar-nav .nav-link');
     
-    if (navbar) {
-        window.addEventListener('scroll', () => {
-            if (window.scrollY > 50) {
-                navbar.classList.add('scrolled');
-            } else {
-                navbar.classList.remove('scrolled');
-            }
-        });
+    function handleScroll() {
+        if (!navbar) return;
         
-        // Trigger once on load in case user refreshed while scrolled down
+        // Navbar background effect
         if (window.scrollY > 50) {
             navbar.classList.add('scrolled');
+        } else {
+            navbar.classList.remove('scrolled');
         }
+
+        // Scrollspy effect
+        let current = '';
+        sections.forEach(section => {
+            const sectionTop = section.offsetTop;
+            // Trigger when the section crosses the middle of the viewport
+            if (window.scrollY >= (sectionTop - (window.innerHeight / 2))) {
+                current = section.getAttribute('id');
+            }
+        });
+
+        // Check if user has scrolled to the bottom of the page
+        if ((window.innerHeight + Math.round(window.scrollY)) >= document.body.offsetHeight - 50) {
+            current = 'contact';
+        }
+
+        navLinks.forEach(link => {
+            link.classList.remove('active');
+            if (link.getAttribute('href') === `#${current}`) {
+                link.classList.add('active');
+            }
+        });
+    }
+
+    if (navbar) {
+        window.addEventListener('scroll', handleScroll);
+        
+        // Trigger once on load in case user refreshed while scrolled down
+        handleScroll();
     }
 
     // 3. Smooth Scrolling for Anchor Links
