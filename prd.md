@@ -153,6 +153,7 @@ Admin dapat:
 ### Reports
 Admin dapat:
 - melihat laporan reservasi
+- cetak reservasi by pdf
 
 ---
 

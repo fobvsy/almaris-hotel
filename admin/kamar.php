@@ -269,13 +269,13 @@
             <a href="kamar.php" class="nav-item active">
                 <i class="fas fa-bed"></i> Manage Rooms
             </a>
-            <a href="#" class="nav-item">
+            <a href="reservasi.php" class="nav-item">
                 <i class="fas fa-calendar-alt"></i> Reservations
             </a>
-            <a href="#" class="nav-item">
+            <a href="user.php" class="nav-item">
                 <i class="fas fa-users"></i> Manage Users
             </a>
-            <a href="#" class="nav-item">
+            <a href="laporan.php" class="nav-item">
                 <i class="fas fa-chart-line"></i> Reports
             </a>
             <a href="#" class="nav-item mt-5 text-danger">
