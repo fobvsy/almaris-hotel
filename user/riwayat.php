@@ -15,7 +15,7 @@
     <!-- AOS Animation -->
     <link href="https://unpkg.com/aos@2.3.1/dist/aos.css" rel="stylesheet">
     <!-- Custom Styles -->
-    <link href="assets/css/styles.css" rel="stylesheet">
+    <link href="../assets/css/styles.css" rel="stylesheet">
     <style>
         .page-header {
             height: 40vh;
@@ -135,26 +135,26 @@
     <!-- Navbar -->
     <nav class="navbar navbar-expand-lg fixed-top" id="navbar">
         <div class="container">
-            <a class="navbar-brand fw-bold" href="index.php">ALMARIS</a>
+            <a class="navbar-brand fw-bold" href="../index.php">ALMARIS</a>
             <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav">
                 <i class="bi bi-list text-white fs-2"></i>
             </button>
             <div class="collapse navbar-collapse" id="navbarNav">
                 <ul class="navbar-nav mx-auto">
                     <li class="nav-item">
-                        <a class="nav-link" href="index.php#home">Home</a>
+                        <a class="nav-link" href="../index.php#home">Home</a>
                     </li>
                     <li class="nav-item">
-                        <a class="nav-link" href="index.php#about">About</a>
+                        <a class="nav-link" href="../index.php#about">About</a>
                     </li>
                     <li class="nav-item">
-                        <a class="nav-link" href="kamar.php">Rooms</a>
+                        <a class="nav-link" href="../kamar.php">Rooms</a>
                     </li>
                     <li class="nav-item">
-                        <a class="nav-link" href="index.php#facilities">Facilities</a>
+                        <a class="nav-link" href="../index.php#facilities">Facilities</a>
                     </li>
                     <li class="nav-item">
-                        <a class="nav-link" href="index.php#contact">Contact</a>
+                        <a class="nav-link" href="../index.php#contact">Contact</a>
                     </li>
                 </ul>
                 <div class="d-flex align-items-center gap-3 auth-buttons">
@@ -165,7 +165,7 @@
                         <ul class="dropdown-menu dropdown-menu-end border-0 shadow-sm mt-2">
                             <li><a class="dropdown-item active" href="riwayat.php">Booking History</a></li>
                             <li><hr class="dropdown-divider"></li>
-                            <li><a class="dropdown-item text-danger" href="logout.php">Logout</a></li>
+                            <li><a class="dropdown-item text-danger" href="../logout.php">Logout</a></li>
                         </ul>
                     </div>
                 </div>
@@ -346,7 +346,7 @@
         <div class="container">
             <div class="row gy-5">
                 <div class="col-lg-4 col-md-6 pe-lg-5">
-                    <a class="navbar-brand fw-bold text-white fs-2 mb-4 d-block" href="index.php">ALMARIS</a>
+                    <a class="navbar-brand fw-bold text-white fs-2 mb-4 d-block" href="../index.php">ALMARIS</a>
                     <p class="text-white-50 mb-4">Almaris Hotel Reservation Website memberikan pengalaman reservasi yang mudah, cepat, dan terpercaya untuk liburan sempurna Anda.</p>
                     <div class="social-links d-flex gap-3">
                         <a href="#"><i class="bi bi-facebook"></i></a>
@@ -358,10 +358,10 @@
                 <div class="col-lg-2 col-md-6">
                     <h5 class="text-white fw-bold mb-4">Quick Links</h5>
                     <ul class="list-unstyled footer-links">
-                        <li><a href="index.php#home">Home</a></li>
-                        <li><a href="index.php#about">About Us</a></li>
-                        <li><a href="kamar.php">Rooms</a></li>
-                        <li><a href="index.php#facilities">Facilities</a></li>
+                        <li><a href="../index.php#home">Home</a></li>
+                        <li><a href="../index.php#about">About Us</a></li>
+                        <li><a href="../kamar.php">Rooms</a></li>
+                        <li><a href="../index.php#facilities">Facilities</a></li>
                     </ul>
                 </div>
                 <div class="col-lg-3 col-md-6">
@@ -391,6 +391,6 @@
     <!-- Scripts -->
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
     <script src="https://unpkg.com/aos@2.3.1/dist/aos.js"></script>
-    <script src="assets/js/script.js"></script>
+    <script src="../assets/js/script.js"></script>
 </body>
 </html>
