@@ -39,8 +39,10 @@ Project dikembangkan menggunakan:
 
 ## User/Pelanggan
 Pengguna yang ingin:
-- melihat kamar hotel
-- melakukan booking
+- melihat informasi hotel
+- melihat daftar kamar
+- melakukan reservasi kamar
+- mengelola reservasi melalui dashboard
 - melihat riwayat reservasi
 
 ## Admin
@@ -73,14 +75,33 @@ Pengguna yang mengelola:
 ### Register
 User dapat:
 - membuat akun baru
-- memasukkan nama, email, password
+- memasukkan nama, email, dan password
 
 ### Login
 User dan admin dapat:
-- login menggunakan email & password
+- login menggunakan email dan password
+
+### Session Management
+
+Setelah login berhasil:
+
+#### User
+- sistem membuat session user
+- user diarahkan kembali ke halaman Home
+- navbar berubah menjadi:
+  - Home
+  - Rooms
+  - About
+  - Contact
+  - Dashboard
+  - Logout
+
+#### Admin
+- sistem membuat session admin
+- admin diarahkan langsung ke dashboard admin
 
 ### Logout
-User dapat keluar dari sistem.
+User dapat keluar dari sistem dan session akan dihapus.
 
 ---
 
@@ -93,12 +114,40 @@ Menampilkan:
 - featured rooms
 - fasilitas hotel
 
+### Dynamic Navigation
+
+#### Guest Navigation
+- Home
+- Rooms
+- About
+- Contact
+- Login
+
+#### Authenticated User Navigation
+- Home
+- Rooms
+- About
+- Contact
+- Dashboard
+- Logout
+
+### User Dashboard
+
+Setelah login, pengguna dapat mengakses Dashboard melalui navbar.
+
+Dashboard menampilkan:
+- informasi profil pengguna
+- total reservasi
+- reservasi aktif
+- akses ke riwayat booking
+- akses cepat ke daftar kamar
+
 ### Rooms
 Menampilkan:
 - daftar kamar
 - harga kamar
-- status kamar
 - foto kamar
+- status ketersediaan
 
 ### Room Detail
 Menampilkan:
@@ -109,13 +158,15 @@ Menampilkan:
 ### Booking
 User dapat:
 - memilih kamar
-- memilih tanggal check-in/check-out
+- memilih tanggal check-in
+- memilih tanggal check-out
 - melakukan reservasi
 
 ### Booking History
 User dapat melihat:
-- riwayat booking
+- riwayat reservasi
 - status reservasi
+- detail booking
 
 ### Contact
 Menampilkan:
@@ -232,6 +283,7 @@ almaris_hotel_db
 | email | VARCHAR |
 | password | VARCHAR |
 | role | ENUM(admin,user) |
+| created_at | TIMESTAMP |
 
 ---
 
@@ -245,6 +297,7 @@ almaris_hotel_db
 | harga | INT |
 | status | ENUM(tersedia,dipesan) |
 | foto | VARCHAR |
+| created_at | TIMESTAMP |
 
 ---
 
@@ -259,13 +312,14 @@ almaris_hotel_db
 | check_out | DATE |
 | total_harga | INT |
 | status | ENUM(pending,checkin,checkout) |
+| created_at | TIMESTAMP |
 
 ---
 
 # 10. Project Structure
 
 ```plaintext
-projek/
+almaris-hotel/
 │
 ├── admin/
 │   ├── dashboard.php
@@ -273,6 +327,10 @@ projek/
 │   ├── reservasi.php
 │   ├── user.php
 │   └── laporan.php
+│
+├── user/
+│   ├── dashboard.php
+│   └── riwayat.php
 │
 ├── assets/
 │   ├── css/
@@ -285,17 +343,18 @@ projek/
 ├── config/
 │   └── koneksi.php
 │
-├── hotel_db.sql
+├── database.sql
+│
 ├── index.php
 ├── login.php
 ├── register.php
 ├── kamar.php
 ├── detail_kamar.php
 ├── booking.php
-├── riwayat.php
 ├── kontak.php
+│
 ├── README.md
-└── prd.md
+└── PRD.md
 ```
 
 ---
@@ -307,17 +366,91 @@ projek/
 2. Create Database
 3. Create PHP Connection
 4. Create Landing Page
-5. Create Login/Register
-6. Create Admin CRUD Rooms
-7. Create User Room Page
-8. Create Booking System
-9. Create Admin Dashboard
-10. Testing
+5. Create Register System
+6. Create Login & Session System
+7. Create Dynamic Navbar
+8. Create User Dashboard
+9. Create Admin CRUD Rooms
+10. Create Room Display
+11. Create Booking System
+12. Create Booking History
+13. Create Admin Reservation Management
+14. Create Reports
+15. Testing
 ```
 
 ---
 
-# 12. Testing Plan
+# 12. User Authentication Flow
+
+Guest User
+↓
+Home
+↓
+Login
+↓
+Validasi Email & Password
+↓
+Login Berhasil
+↓
+Redirect ke Home
+↓
+Navbar Berubah
+(Home | Rooms | About | Contact | Dashboard | Logout)
+↓
+User Mengakses Dashboard
+↓
+Dashboard User
+
+---
+
+Admin Login
+↓
+Validasi Email & Password
+↓
+Login Berhasil
+↓
+Redirect ke Admin Dashboard
+
+---
+
+# 13. User Flow
+
+Home
+↓
+View Rooms
+↓
+Login / Register
+↓
+Home (Navbar berubah)
+↓
+Dashboard
+├── Informasi Profil
+├── Reservasi Aktif
+├── Riwayat Booking
+└── Akses Cepat ke Daftar Kamar
+
+---
+
+Booking Flow
+
+Home
+↓
+Rooms
+↓
+Room Detail
+↓
+Booking
+↓
+Reservation Saved
+↓
+Dashboard
+↓
+Booking History
+
+---
+
+# 14. Testing Plan
 
 ## Authentication Testing
 - Register berhasil
@@ -337,8 +470,13 @@ projek/
 - Responsive mobile
 - Responsive desktop
 
+## Dashboard Testing
+- Dashboard user tampil sesuai session
+- Dashboard admin hanya dapat diakses admin
+- Navbar berubah setelah login
+
 ---
 
-# 13. Conclusion
+# 15. Conclusion
 
 Almaris Hotel Reservation Website merupakan sistem reservasi hotel berbasis web yang dirancang dengan konsep modern luxury untuk memberikan pengalaman pengguna yang elegan, responsive, dan mudah digunakan.
