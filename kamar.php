@@ -1,3 +1,4 @@
+<?php session_start(); ?>
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -82,8 +83,25 @@
                     </li>
                 </ul>
                 <div class="d-flex align-items-center gap-3 auth-buttons">
-                    <a href="login.php" class="text-white text-decoration-none nav-link-custom">Login</a>
-                    <a href="register.php" class="btn btn-gold">Sign Up</a>
+                    <?php if (isset($_SESSION['user_id'])): ?>
+                        <?php
+                            $dashboardUrl = (isset($_SESSION['role']) && $_SESSION['role'] === 'admin')
+                                ? 'admin/dashboard.php'
+                                : 'user/dashboard.php';
+                        ?>
+                        <span class="text-white-50 d-none d-lg-inline" style="font-size:0.85rem;">Hi, <?= htmlspecialchars($_SESSION['nama']) ?></span>
+                        <a href="<?= $dashboardUrl ?>" class="navbar-action-btn dashboard-btn">
+                            <i class="bi bi-grid-1x2"></i>
+                            <span>Dashboard</span>
+                        </a>
+                        <a href="logout.php" class="navbar-action-btn logout-btn">
+                            <i class="bi bi-box-arrow-right"></i>
+                            <span>Logout</span>
+                        </a>
+                    <?php else: ?>
+                        <a href="admin/login.php" class="text-white text-decoration-none nav-link-custom">Login</a>
+                        <a href="admin/register.php" class="btn btn-gold">Sign Up</a>
+                    <?php endif; ?>
                 </div>
             </div>
         </div>

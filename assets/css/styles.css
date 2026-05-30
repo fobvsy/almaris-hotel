@@ -421,3 +421,109 @@ h1, h2, h3, h4, h5, h6, .navbar-brand {
     .display-5 { font-size: 2.5rem; }
     .section-padding { padding: 60px 0; }
 }
+
+/* =============================================
+   Navbar Logged-In Action Buttons
+   ============================================= */
+.navbar-action-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.45rem;
+    padding: 0.45rem 1rem;
+    border-radius: 50px;
+    font-family: var(--font-heading);
+    font-size: 0.82rem;
+    font-weight: 600;
+    letter-spacing: 0.04em;
+    text-decoration: none;
+    text-transform: uppercase;
+    cursor: pointer;
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    position: relative;
+    overflow: hidden;
+    backdrop-filter: blur(8px);
+    -webkit-backdrop-filter: blur(8px);
+}
+
+.navbar-action-btn::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    opacity: 0;
+    transition: opacity 0.3s ease;
+    border-radius: inherit;
+}
+
+.navbar-action-btn:hover::before {
+    opacity: 1;
+}
+
+.navbar-action-btn i {
+    font-size: 0.95rem;
+    transition: transform 0.3s ease;
+}
+
+.navbar-action-btn:hover i {
+    transform: scale(1.15);
+}
+
+/* Dashboard Button */
+.dashboard-btn {
+    color: rgba(255, 255, 255, 0.9);
+    border: 1.5px solid rgba(212, 175, 55, 0.5);
+    background: rgba(212, 175, 55, 0.08);
+}
+
+.dashboard-btn::before {
+    background: rgba(212, 175, 55, 0.15);
+}
+
+.dashboard-btn:hover {
+    color: var(--color-gold);
+    border-color: var(--color-gold);
+    background: rgba(212, 175, 55, 0.12);
+    box-shadow: 0 0 18px rgba(212, 175, 55, 0.2), inset 0 0 12px rgba(212, 175, 55, 0.05);
+    transform: translateY(-2px);
+}
+
+.dashboard-btn i {
+    color: var(--color-gold);
+}
+
+/* Logout Button */
+.logout-btn {
+    color: rgba(255, 255, 255, 0.75);
+    border: 1.5px solid rgba(255, 255, 255, 0.22);
+    background: rgba(255, 255, 255, 0.06);
+}
+
+.logout-btn::before {
+    background: rgba(255, 255, 255, 0.06);
+}
+
+.logout-btn:hover {
+    color: #fff;
+    border-color: rgba(239, 68, 68, 0.7);
+    background: rgba(239, 68, 68, 0.1);
+    box-shadow: 0 0 18px rgba(239, 68, 68, 0.15);
+    transform: translateY(-2px);
+}
+
+.logout-btn:hover i {
+    color: #f87171;
+    transform: translateX(3px) scale(1.15);
+}
+
+/* Responsive tweaks for small screens */
+@media (max-width: 991px) {
+    .navbar-action-btn {
+        font-size: 0.85rem;
+        padding: 0.5rem 1.1rem;
+        border-radius: var(--radius-sm);
+        width: 100%;
+        justify-content: center;
+    }
+    .dashboard-btn, .logout-btn {
+        margin-bottom: 0.4rem;
+    }
+}

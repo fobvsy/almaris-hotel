@@ -1,3 +1,21 @@
+<?php
+session_start();
+
+// Protect: only authenticated users may access this page
+if (!isset($_SESSION['user_id'])) {
+    header("Location: ../admin/login.php");
+    exit;
+}
+
+// Also block admins from user dashboard
+if (isset($_SESSION['role']) && $_SESSION['role'] === 'admin') {
+    header("Location: ../admin/dashboard.php");
+    exit;
+}
+
+$userName = htmlspecialchars($_SESSION['nama'] ?? 'User');
+$userInitials = strtoupper(mb_substr($userName, 0, 2));
+?>
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -82,9 +100,9 @@
                     <li class="nav-item"><a class="nav-link active" href="dashboard.php">Dashboard</a></li>
                 </ul>
                 <div class="d-flex align-items-center gap-3">
-                    <span class="text-white-50 me-2">Hi, John Doe</span>
-                    <a href="../logout.php" class="btn btn-outline-light btn-sm" style="border-color: rgba(255,255,255,0.5); color: white;">Logout</a>
-                </div>
+                        <span class="text-white-50 me-2">Hi, <?= $userName ?></span>
+                        <a href="../logout.php" class="btn btn-outline-light btn-sm" style="border-color: rgba(255,255,255,0.5); color: white;">Logout</a>
+                    </div>
             </div>
         </div>
     </nav>
@@ -95,7 +113,7 @@
             <div class="row align-items-center">
                 <div class="col-md-8 mt-4">
                     <span class="text-gold fw-bold text-uppercase tracking-wide fs-7 mb-2 d-block">My Account</span>
-                    <h1 class="fw-bold mb-2">Welcome back, John!</h1>
+                    <h1 class="fw-bold mb-2">Welcome back, <?= htmlspecialchars(explode(' ', $_SESSION['nama'])[0]) ?>!</h1>
                     <p class="text-white-50 mb-0">Manage your bookings, profile, and preferences all in one place.</p>
                 </div>
             </div>
@@ -110,9 +128,9 @@
                 <!-- Profile Info Sidebar -->
                 <div class="col-lg-4">
                     <div class="dashboard-card text-center">
-                        <div class="user-avatar-large mx-auto mb-4">JD</div>
-                        <h4 class="fw-bold text-navy mb-1">John Doe</h4>
-                        <p class="text-muted mb-4">johndoe@example.com</p>
+                        <div class="user-avatar-large mx-auto mb-4"><?= $userInitials ?></div>
+                        <h4 class="fw-bold text-navy mb-1"><?= $userName ?></h4>
+                        <p class="text-muted mb-4"><?= htmlspecialchars($_SESSION['email'] ?? '') ?></p>
                         <hr class="text-muted">
                         <div class="text-start mt-4">
                             <p class="mb-2"><i class="bi bi-telephone text-gold me-2"></i> +62 812 3456 7890</p>

@@ -1,3 +1,87 @@
+<?php
+session_start();
+require_once 'config/koneksi.php';
+
+$bookingSuccess = false;
+$bookingError = '';
+
+// Map room option values (price strings) to tipe_kamar in DB
+$roomMap = [
+    '1500000' => 'Deluxe Ocean View',
+    '800000'  => 'Standard City View',
+    '2800000' => 'Executive Suite',
+    '5500000' => 'Presidential Suite',
+    '3500000' => 'Family Suite',
+    '4200000' => 'Honeymoon Suite',
+];
+
+// Generate CSRF token if not set
+if (empty($_SESSION['csrf_token'])) {
+    $_SESSION['csrf_token'] = bin2hex(random_bytes(32));
+}
+
+if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+    // CSRF check
+    if (!isset($_POST['csrf_token']) || !hash_equals($_SESSION['csrf_token'], $_POST['csrf_token'])) {
+        $bookingError = 'Invalid request. Please try again.';
+    } else {
+        $roomPrice  = $_POST['room_price']   ?? '';
+        $checkIn    = $_POST['check_in']     ?? '';
+        $checkOut   = $_POST['check_out']    ?? '';
+        $totalHarga = intval($_POST['total_harga'] ?? 0);
+
+        if (empty($roomPrice) || empty($checkIn) || empty($checkOut) || $totalHarga <= 0) {
+            $bookingError = 'Please fill in all required fields.';
+        } elseif ($checkOut <= $checkIn) {
+            $bookingError = 'Check-out date must be after check-in date.';
+        } else {
+            $tipeKamar = $roomMap[$roomPrice] ?? '';
+
+            if (empty($tipeKamar)) {
+                $bookingError = 'Invalid room selection.';
+            } else {
+                // Look up id_kamar by tipe_kamar where status = tersedia
+                $stmtRoom = $koneksi->prepare(
+                    "SELECT id_kamar FROM kamar WHERE tipe_kamar = ? AND status = 'tersedia' LIMIT 1"
+                );
+                $stmtRoom->bind_param('s', $tipeKamar);
+                $stmtRoom->execute();
+                $roomResult = $stmtRoom->get_result();
+
+                if ($roomResult->num_rows === 0) {
+                    $bookingError = 'Sorry, that room is no longer available. Please select another.';
+                } else {
+                    $roomRow  = $roomResult->fetch_assoc();
+                    $idKamar  = $roomRow['id_kamar'];
+                    $idUser   = $_SESSION['user_id'];
+
+                    // Insert reservation
+                    $stmtIns = $koneksi->prepare(
+                        "INSERT INTO reservasi (id_user, id_kamar, check_in, check_out, total_harga, status)
+                         VALUES (?, ?, ?, ?, ?, 'pending')"
+                    );
+                    $stmtIns->bind_param('iissi', $idUser, $idKamar, $checkIn, $checkOut, $totalHarga);
+
+                    if ($stmtIns->execute()) {
+                        // Mark room as booked
+                        $stmtUpd = $koneksi->prepare(
+                            "UPDATE kamar SET status = 'dipesan' WHERE id_kamar = ?"
+                        );
+                        $stmtUpd->bind_param('i', $idKamar);
+                        $stmtUpd->execute();
+
+                        $bookingSuccess = true;
+                        // Regenerate CSRF token after use
+                        $_SESSION['csrf_token'] = bin2hex(random_bytes(32));
+                    } else {
+                        $bookingError = 'Booking failed. Please try again.';
+                    }
+                }
+            }
+        }
+    }
+}
+?>
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -101,8 +185,25 @@
                     </li>
                 </ul>
                 <div class="d-flex align-items-center gap-3 auth-buttons">
-                    <a href="login.php" class="text-white text-decoration-none nav-link-custom">Login</a>
-                    <a href="register.php" class="btn btn-gold">Sign Up</a>
+                    <?php if (isset($_SESSION['user_id'])): ?>
+                        <?php
+                            $dashboardUrl = (isset($_SESSION['role']) && $_SESSION['role'] === 'admin')
+                                ? 'admin/dashboard.php'
+                                : 'user/dashboard.php';
+                        ?>
+                        <span class="text-white-50 d-none d-lg-inline" style="font-size:0.85rem;">Hi, <?= htmlspecialchars($_SESSION['nama']) ?></span>
+                        <a href="<?= $dashboardUrl ?>" class="navbar-action-btn dashboard-btn">
+                            <i class="bi bi-grid-1x2"></i>
+                            <span>Dashboard</span>
+                        </a>
+                        <a href="logout.php" class="navbar-action-btn logout-btn">
+                            <i class="bi bi-box-arrow-right"></i>
+                            <span>Logout</span>
+                        </a>
+                    <?php else: ?>
+                        <a href="admin/login.php" class="text-white text-decoration-none nav-link-custom">Login</a>
+                        <a href="admin/register.php" class="btn btn-gold">Sign Up</a>
+                    <?php endif; ?>
                 </div>
             </div>
         </div>
@@ -119,7 +220,37 @@
     <!-- Booking Section -->
     <section class="section-padding pt-0">
         <div class="container">
-            <form id="bookingForm" action="#" method="POST">
+
+            <?php if ($bookingSuccess): ?>
+            <!-- Success Message -->
+            <div class="row justify-content-center mb-5" data-aos="fade-up">
+                <div class="col-lg-8 text-center">
+                    <div class="p-5 rounded-4 shadow-soft" style="background: white;">
+                        <div class="mb-4" style="font-size: 4rem;">🎉</div>
+                        <h2 class="fw-bold text-navy mb-3">Booking Confirmed!</h2>
+                        <p class="text-muted mb-4">Your reservation has been successfully submitted with status <strong>Pending</strong>. Our team will confirm it shortly.</p>
+                        <div class="d-flex justify-content-center gap-3">
+                            <a href="user/dashboard.php" class="btn btn-gold px-4 py-2 fw-bold shadow-gold"><i class="bi bi-grid me-2"></i>Go to Dashboard</a>
+                            <a href="user/riwayat.php" class="btn btn-outline-navy px-4 py-2 fw-bold"><i class="bi bi-clock-history me-2"></i>View History</a>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <?php else: ?>
+
+            <?php if (!empty($bookingError)): ?>
+            <div class="alert alert-danger alert-dismissible fade show rounded-3 mb-4" role="alert">
+                <i class="bi bi-exclamation-triangle-fill me-2"></i><?= htmlspecialchars($bookingError) ?>
+                <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+            </div>
+            <?php endif; ?>
+
+            <form id="bookingForm" action="booking.php" method="POST">
+                <input type="hidden" name="csrf_token" value="<?= htmlspecialchars($_SESSION['csrf_token']) ?>">
+                <input type="hidden" name="room_price" id="roomPriceInput" value="">
+                <input type="hidden" name="check_in" id="checkInHidden" value="">
+                <input type="hidden" name="check_out" id="checkOutHidden" value="">
+                <input type="hidden" name="total_harga" id="totalHargaInput" value="">
                 <div class="row g-5">
                     
                     <!-- Left Column: Booking Details -->
@@ -224,6 +355,8 @@
 
                 </div>
             </form>
+            <?php endif; ?>
+
         </div>
     </section>
 

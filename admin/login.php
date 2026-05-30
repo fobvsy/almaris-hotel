@@ -1,3 +1,89 @@
+<?php
+session_start();
+require_once '../config/koneksi.php';
+
+// If already logged in, redirect based on role
+if (isset($_SESSION['user_id'])) {
+    if (isset($_SESSION['role']) && $_SESSION['role'] === 'admin') {
+        header("Location: dashboard.php");
+    } else {
+        header("Location: ../index.php");
+    }
+    exit;
+}
+
+// Generate CSRF token if not exists
+if (empty($_SESSION['csrf_token'])) {
+    $_SESSION['csrf_token'] = bin2hex(random_bytes(32));
+}
+
+$error = '';
+
+if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+    if (!isset($_POST['csrf_token']) || !hash_equals($_SESSION['csrf_token'], $_POST['csrf_token'])) {
+        $error = "Invalid CSRF token.";
+    } else {
+        $email = trim($_POST['email'] ?? '');
+        $password = $_POST['password'] ?? '';
+
+        if (empty($email) || empty($password)) {
+            $error = "Email and password are required.";
+        } else {
+            $stmt = $koneksi->prepare("SELECT id_user, nama, password, role FROM users WHERE email = ?");
+            $stmt->bind_param("s", $email);
+            $stmt->execute();
+            $result = $stmt->get_result();
+
+            if ($row = $result->fetch_assoc()) {
+                $db_password = $row['password'];
+                $is_valid = false;
+                $needs_rehash = false;
+
+                // Check bcrypt
+                if (password_verify($password, $db_password)) {
+                    $is_valid = true;
+                } 
+                // Check legacy MD5
+                elseif (md5($password) === $db_password) {
+                    $is_valid = true;
+                    $needs_rehash = true;
+                }
+
+                if ($is_valid) {
+                    if ($needs_rehash) {
+                        $new_hash = password_hash($password, PASSWORD_DEFAULT);
+                        $update_stmt = $koneksi->prepare("UPDATE users SET password = ? WHERE id_user = ?");
+                        $update_stmt->bind_param("si", $new_hash, $row['id_user']);
+                        $update_stmt->execute();
+                        $update_stmt->close();
+                    }
+
+                    // Prevent Session Fixation
+                    session_regenerate_id(true);
+
+                    // Set session variables
+                    $_SESSION['user_id'] = $row['id_user'];
+                    $_SESSION['nama'] = $row['nama'];
+                    $_SESSION['role'] = $row['role'];
+
+                    // Redirect based on role
+                    if ($row['role'] === 'admin') {
+                        header("Location: dashboard.php");
+                    } else {
+                        header("Location: ../index.php");
+                    }
+                    exit;
+                } else {
+                    $error = "Invalid email or password.";
+                }
+            } else {
+                $error = "Invalid email or password.";
+            }
+            $stmt->close();
+        }
+    }
+}
+?>
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -13,7 +99,7 @@
     <!-- Bootstrap Icons -->
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.1/font/bootstrap-icons.css">
     <!-- Custom Styles -->
-    <link href="assets/css/styles.css" rel="stylesheet">
+    <link href="../assets/css/styles.css" rel="stylesheet">
     <style>
         .auth-section {
             min-height: 100vh;
@@ -62,25 +148,31 @@
 </head>
 <body>
 
-    <a href="index.php" class="back-home d-none d-md-flex align-items-center gap-2">
+    <a href="../index.php" class="back-home d-none d-md-flex align-items-center gap-2">
         <i class="bi bi-arrow-left"></i> Back to Home
     </a>
 
     <section class="auth-section">
         <div class="glassmorphism auth-card">
             <div class="text-center mb-4">
-                <a href="index.php" class="text-decoration-none">
+                <a href="../index.php" class="text-decoration-none">
                     <h2 class="fw-bold text-navy mb-1" style="font-family: var(--font-heading);">ALMARIS</h2>
                 </a>
                 <p class="text-muted fs-7">Welcome back! Please login to your account.</p>
             </div>
             
-            <form action="#" method="POST">
+            <?php if (!empty($error)): ?>
+                <div class="alert alert-danger p-2 fs-7 text-center"><?= htmlspecialchars($error) ?></div>
+            <?php endif; ?>
+            
+            <form action="login.php" method="POST">
+                <input type="hidden" name="csrf_token" value="<?= htmlspecialchars($_SESSION['csrf_token']) ?>">
+                
                 <div class="mb-4">
                     <label class="form-label fw-medium text-navy fs-7">Email Address</label>
                     <div class="input-group auth-input-group">
                         <span class="input-group-text"><i class="bi bi-envelope"></i></span>
-                        <input type="email" class="form-control custom-input" placeholder="Enter your email" required>
+                        <input type="email" class="form-control custom-input" name="email" placeholder="Enter your email" value="<?= isset($email) ? htmlspecialchars($email) : '' ?>" required>
                     </div>
                 </div>
                 
@@ -91,12 +183,12 @@
                     </div>
                     <div class="input-group auth-input-group">
                         <span class="input-group-text"><i class="bi bi-lock"></i></span>
-                        <input type="password" class="form-control custom-input" placeholder="Enter your password" required>
+                        <input type="password" class="form-control custom-input" name="password" placeholder="Enter your password" required>
                     </div>
                 </div>
                 
                 <div class="mb-4 form-check">
-                    <input type="checkbox" class="form-check-input" id="rememberMe">
+                    <input type="checkbox" class="form-check-input" id="rememberMe" name="remember">
                     <label class="form-check-label text-muted fs-7" for="rememberMe">Remember me</label>
                 </div>
                 

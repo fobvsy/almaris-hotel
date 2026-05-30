@@ -124,8 +124,8 @@
                     </li>
                 </ul>
                 <div class="d-flex align-items-center gap-3 auth-buttons">
-                    <a href="login.php" class="text-white text-decoration-none nav-link-custom">Login</a>
-                    <a href="register.php" class="btn btn-gold">Sign Up</a>
+                    <a href="admin/login.php" class="text-white text-decoration-none nav-link-custom">Login</a>
+                    <a href="admin/register.php" class="btn btn-gold">Sign Up</a>
                 </div>
             </div>
         </div>
