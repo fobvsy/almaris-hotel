@@ -15,7 +15,7 @@ document.addEventListener('DOMContentLoaded', function() {
     const summaryImage         = document.getElementById('summaryImage');
 
     // Hidden inputs for PHP backend
-    const roomPriceInput  = document.getElementById('roomPriceInput');
+    const roomIdInput     = document.getElementById('roomIdInput');
     const checkInHidden   = document.getElementById('checkInHidden');
     const checkOutHidden  = document.getElementById('checkOutHidden');
     const totalHargaInput = document.getElementById('totalHargaInput');
@@ -35,10 +35,15 @@ document.addEventListener('DOMContentLoaded', function() {
     const calculatePrice = () => {
         if (!roomSelect || !checkIn || !checkOut) return;
 
-        let pricePerNight = parseInt(roomSelect.value) || 0;
-        let roomName = roomSelect.options[roomSelect.selectedIndex]
-                           ? roomSelect.options[roomSelect.selectedIndex].getAttribute('data-name')
-                           : null;
+        let pricePerNight = 0;
+        let roomName = null;
+        
+        if (roomSelect.selectedIndex >= 0 && roomSelect.options[roomSelect.selectedIndex].value !== "") {
+            let opt = roomSelect.options[roomSelect.selectedIndex];
+            pricePerNight = parseInt(opt.getAttribute('data-price')) || 0;
+            roomName = opt.getAttribute('data-name');
+        }
+
 
         let date1  = new Date(checkIn.value);
         let date2  = new Date(checkOut.value);
@@ -64,7 +69,7 @@ document.addEventListener('DOMContentLoaded', function() {
         if (summaryTotalPrice) summaryTotalPrice.innerText = formatRupiah(totalPrice);
 
         // Sync hidden fields for PHP
-        if (roomPriceInput)  roomPriceInput.value  = roomSelect.value;
+        if (roomIdInput)     roomIdInput.value     = roomSelect.value;
         if (checkInHidden)   checkInHidden.value   = checkIn.value;
         if (checkOutHidden)  checkOutHidden.value  = checkOut.value;
         if (totalHargaInput) totalHargaInput.value = totalPrice;
@@ -116,7 +121,7 @@ document.addEventListener('DOMContentLoaded', function() {
     const bookingForm = document.getElementById('bookingForm');
     if (bookingForm) {
         bookingForm.addEventListener('submit', function(e) {
-            if (roomPriceInput)  roomPriceInput.value  = roomSelect ? roomSelect.value : '';
+            if (roomIdInput)     roomIdInput.value     = roomSelect ? roomSelect.value : '';
             if (checkInHidden)   checkInHidden.value   = checkIn  ? checkIn.value  : '';
             if (checkOutHidden)  checkOutHidden.value  = checkOut ? checkOut.value : '';
             if (totalHargaInput) totalHargaInput.value = currentTotalPrice;

@@ -5,15 +5,17 @@ require_once 'config/koneksi.php';
 $bookingSuccess = false;
 $bookingError = '';
 
-// Map room option values (price strings) to tipe_kamar in DB
-$roomMap = [
-    '1500000' => 'Deluxe Ocean View',
-    '800000'  => 'Standard City View',
-    '2800000' => 'Executive Suite',
-    '5500000' => 'Presidential Suite',
-    '3500000' => 'Family Suite',
-    '4200000' => 'Honeymoon Suite',
-];
+// Protect: only authenticated users may access this page
+if (!isset($_SESSION['user_id'])) {
+    header("Location: admin/login.php");
+    exit;
+}
+
+
+// Fetch available rooms for the dropdown
+$stmtRooms = $koneksi->prepare("SELECT id_kamar, tipe_kamar, harga FROM kamar WHERE status = 'tersedia'");
+$stmtRooms->execute();
+$availableRooms = $stmtRooms->get_result()->fetch_all(MYSQLI_ASSOC);
 
 // Generate CSRF token if not set
 if (empty($_SESSION['csrf_token'])) {
@@ -25,59 +27,64 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     if (!isset($_POST['csrf_token']) || !hash_equals($_SESSION['csrf_token'], $_POST['csrf_token'])) {
         $bookingError = 'Invalid request. Please try again.';
     } else {
-        $roomPrice  = $_POST['room_price']   ?? '';
-        $checkIn    = $_POST['check_in']     ?? '';
-        $checkOut   = $_POST['check_out']    ?? '';
-        $totalHarga = intval($_POST['total_harga'] ?? 0);
+        $roomId   = $_POST['room_id']   ?? '';
+        $checkIn  = $_POST['check_in']  ?? '';
+        $checkOut = $_POST['check_out'] ?? '';
 
-        if (empty($roomPrice) || empty($checkIn) || empty($checkOut) || $totalHarga <= 0) {
+        if (empty($roomId) || empty($checkIn) || empty($checkOut)) {
             $bookingError = 'Please fill in all required fields.';
         } elseif ($checkOut <= $checkIn) {
             $bookingError = 'Check-out date must be after check-in date.';
         } else {
-            $tipeKamar = $roomMap[$roomPrice] ?? '';
-
-            if (empty($tipeKamar)) {
-                $bookingError = 'Invalid room selection.';
-            } else {
-                // Look up id_kamar by tipe_kamar where status = tersedia
-                $stmtRoom = $koneksi->prepare(
-                    "SELECT id_kamar FROM kamar WHERE tipe_kamar = ? AND status = 'tersedia' LIMIT 1"
-                );
-                $stmtRoom->bind_param('s', $tipeKamar);
-                $stmtRoom->execute();
-                $roomResult = $stmtRoom->get_result();
+            // Look up id_kamar and harga by id_kamar where status = tersedia
+            $stmtRoom = $koneksi->prepare(
+                "SELECT id_kamar, harga FROM kamar WHERE id_kamar = ? AND status = 'tersedia' LIMIT 1"
+            );
+            $stmtRoom->bind_param('i', $roomId);
+            $stmtRoom->execute();
+            $roomResult = $stmtRoom->get_result();
 
                 if ($roomResult->num_rows === 0) {
                     $bookingError = 'Sorry, that room is no longer available. Please select another.';
                 } else {
                     $roomRow  = $roomResult->fetch_assoc();
                     $idKamar  = $roomRow['id_kamar'];
+                    $hargaPerMalam = $roomRow['harga'];
                     $idUser   = $_SESSION['user_id'];
-
-                    // Insert reservation
-                    $stmtIns = $koneksi->prepare(
-                        "INSERT INTO reservasi (id_user, id_kamar, check_in, check_out, total_harga, status)
-                         VALUES (?, ?, ?, ?, ?, 'pending')"
-                    );
-                    $stmtIns->bind_param('iissi', $idUser, $idKamar, $checkIn, $checkOut, $totalHarga);
-
-                    if ($stmtIns->execute()) {
-                        // Mark room as booked
-                        $stmtUpd = $koneksi->prepare(
-                            "UPDATE kamar SET status = 'dipesan' WHERE id_kamar = ?"
-                        );
-                        $stmtUpd->bind_param('i', $idKamar);
-                        $stmtUpd->execute();
-
-                        $bookingSuccess = true;
-                        // Regenerate CSRF token after use
-                        $_SESSION['csrf_token'] = bin2hex(random_bytes(32));
+                    
+                    $datetime1 = new DateTime($checkIn);
+                    $datetime2 = new DateTime($checkOut);
+                    $interval = $datetime1->diff($datetime2);
+                    $nights = $interval->days;
+                    
+                    if ($nights <= 0) {
+                        $bookingError = 'Check-out date must be after check-in date.';
                     } else {
-                        $bookingError = 'Booking failed. Please try again.';
+                        $totalHargaCalculated = $hargaPerMalam * $nights;
+                        
+                        // Insert reservation
+                        $stmtIns = $koneksi->prepare(
+                            "INSERT INTO reservasi (id_user, id_kamar, check_in, check_out, total_harga, status)
+                             VALUES (?, ?, ?, ?, ?, 'pending')"
+                        );
+                        $stmtIns->bind_param('iissi', $idUser, $idKamar, $checkIn, $checkOut, $totalHargaCalculated);
+
+                        if ($stmtIns->execute()) {
+                            // Mark room as booked
+                            $stmtUpd = $koneksi->prepare(
+                                "UPDATE kamar SET status = 'dipesan' WHERE id_kamar = ?"
+                            );
+                            $stmtUpd->bind_param('i', $idKamar);
+                            $stmtUpd->execute();
+
+                            $bookingSuccess = true;
+                            // Regenerate CSRF token after use
+                            $_SESSION['csrf_token'] = bin2hex(random_bytes(32));
+                        } else {
+                            $bookingError = 'Booking failed. Please try again.';
+                        }
                     }
                 }
-            }
         }
     }
 }
@@ -247,7 +254,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
             <form id="bookingForm" action="booking.php" method="POST">
                 <input type="hidden" name="csrf_token" value="<?= htmlspecialchars($_SESSION['csrf_token']) ?>">
-                <input type="hidden" name="room_price" id="roomPriceInput" value="">
+                <input type="hidden" name="room_id" id="roomIdInput" value="">
                 <input type="hidden" name="check_in" id="checkInHidden" value="">
                 <input type="hidden" name="check_out" id="checkOutHidden" value="">
                 <input type="hidden" name="total_harga" id="totalHargaInput" value="">
@@ -264,11 +271,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                                     <div class="input-container">
                                         <i class="bi bi-door-open"></i>
                                         <select class="form-select custom-input" id="roomSelect" required>
-                                            <option value="" disabled>Choose your room...</option>
-                                            <option value="1500000" data-name="Deluxe Ocean View" selected>Deluxe Ocean View (Rp 1.500.000 / Night)</option>
-                                            <option value="800000" data-name="Standard City View">Standard City View (Rp 800.000 / Night)</option>
-                                            <option value="2800000" data-name="Executive Suite">Executive Suite (Rp 2.800.000 / Night)</option>
-                                            <option value="5500000" data-name="Presidential Suite">Presidential Suite (Rp 5.500.000 / Night)</option>
+                                            <option value="" disabled selected>Choose your room...</option>
+                                            <?php foreach ($availableRooms as $room): ?>
+                                                <option value="<?= $room['id_kamar'] ?>" data-name="<?= htmlspecialchars($room['tipe_kamar']) ?>" data-price="<?= $room['harga'] ?>">
+                                                    <?= htmlspecialchars($room['tipe_kamar']) ?> (Rp <?= number_format($room['harga'], 0, ',', '.') ?> / Night)
+                                                </option>
+                                            <?php endforeach; ?>
                                         </select>
                                     </div>
                                 </div>
