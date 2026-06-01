@@ -7,7 +7,7 @@ $bookingError = '';
 
 // Protect: only authenticated users may access this page
 if (!isset($_SESSION['user_id'])) {
-    header("Location: admin/login.php");
+    header("Location: login.php");
     exit;
 }
 
@@ -208,8 +208,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                             <span>Logout</span>
                         </a>
                     <?php else: ?>
-                        <a href="admin/login.php" class="text-white text-decoration-none nav-link-custom">Login</a>
-                        <a href="admin/register.php" class="btn btn-gold">Sign Up</a>
+                        <a href="login.php" class="text-white text-decoration-none nav-link-custom">Login</a>
+                        <a href="register.php" class="btn btn-gold">Sign Up</a>
                     <?php endif; ?>
                 </div>
             </div>

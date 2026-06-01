@@ -218,7 +218,7 @@
             <a href="laporan.php" class="nav-item">
                 <i class="fas fa-chart-line"></i> Reports
             </a>
-            <a href="#" class="nav-item mt-5 text-danger">
+            <a href="../logout.php" class="nav-item mt-5 text-danger">
                 <i class="fas fa-sign-out-alt text-danger"></i> Logout
             </a>
         </div>

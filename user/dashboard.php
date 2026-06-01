@@ -3,7 +3,7 @@ session_start();
 
 // Protect: only authenticated users may access this page
 if (!isset($_SESSION['user_id'])) {
-    header("Location: ../admin/login.php");
+    header("Location: ../login.php");
     exit;
 }
 

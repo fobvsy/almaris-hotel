@@ -3,7 +3,7 @@
 -- https://www.phpmyadmin.net/
 --
 -- Host: 127.0.0.1
--- Waktu pembuatan: 28 Bulan Mei 2026 pada 08.39
+-- Waktu pembuatan: 01 Jun 2026 pada 09.49
 -- Versi server: 10.4.32-MariaDB
 -- Versi PHP: 8.2.12
 
@@ -44,7 +44,7 @@ CREATE TABLE `kamar` (
 INSERT INTO `kamar` (`id_kamar`, `nomor_kamar`, `tipe_kamar`, `harga`, `status`, `foto`, `created_at`) VALUES
 (1, '101', 'Deluxe Room', 750000, 'tersedia', 'deluxe.jpg', '2026-05-28 05:50:42'),
 (2, '102', 'Executive Suite', 1250000, 'tersedia', 'executive.jpg', '2026-05-28 05:50:42'),
-(3, '103', 'Presidential Room', 2500000, 'tersedia', 'presidential.jpg', '2026-05-28 05:50:42');
+(3, '103', 'Presidential Room', 2500000, 'dipesan', 'presidential.jpg', '2026-05-28 05:50:42');
 
 -- --------------------------------------------------------
 
@@ -62,6 +62,13 @@ CREATE TABLE `reservasi` (
   `status` enum('pending','checkin','checkout') NOT NULL DEFAULT 'pending',
   `created_at` timestamp NOT NULL DEFAULT current_timestamp()
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+
+--
+-- Dumping data untuk tabel `reservasi`
+--
+
+INSERT INTO `reservasi` (`id_reservasi`, `id_user`, `id_kamar`, `check_in`, `check_out`, `total_harga`, `status`, `created_at`) VALUES
+(1, 4, 3, '2026-06-01', '2026-06-02', 2500000, 'pending', '2026-06-01 07:44:49');
 
 -- --------------------------------------------------------
 
@@ -83,7 +90,11 @@ CREATE TABLE `users` (
 --
 
 INSERT INTO `users` (`id_user`, `nama`, `email`, `password`, `role`, `created_at`) VALUES
-(1, 'Admin Hotel', 'admin@hotel.com', '0192023a7bbd73250516f069df18b500', 'admin', '2026-05-28 05:50:29');
+(1, 'Admin Hotel', 'admin@hotel.com', '$2y$10$N9v4j5vT8q3v0M2f0sJYQeKj2kYk7L7D8v7x3h4m1r8Y6s5a2b3c4', 'admin', '2026-05-28 05:50:29'),
+(2, 'Gon', 'gon@yahoo.id', '$2y$10$QCpMc3q7a9IMscoV9DptF./Yt3u3zwROZ.p1m0LW45chL01U2cCqq', 'user', '2026-05-30 06:41:13'),
+(3, 'Admin Baru', 'info@almaris.hotel', 'a665a45920422f9d417e4867efdc4fb8a04a1f3fff1fa07e998e86f7f7a27ae3', 'admin', '2026-06-01 07:32:17'),
+(4, 'gond', 'gon@ftr.id', '$2y$10$PqrzejFbU3D5DG5Z5isGXe.Hjpeeo80oifK7kk7Qw8JTG.mTagpca', 'user', '2026-06-01 07:34:08'),
+(5, 'Admin Baru', 'admin2@hotel.com', '$2y$10$QCPcMc3q7a9IMscoV9DptF/Yt3u3zwROZ.p1m0LW45cQ.ZpDCVXMK', 'admin', '2026-06-01 07:38:15');
 
 --
 -- Indexes for dumped tables
@@ -125,13 +136,13 @@ ALTER TABLE `kamar`
 -- AUTO_INCREMENT untuk tabel `reservasi`
 --
 ALTER TABLE `reservasi`
-  MODIFY `id_reservasi` int(11) NOT NULL AUTO_INCREMENT;
+  MODIFY `id_reservasi` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=2;
 
 --
 -- AUTO_INCREMENT untuk tabel `users`
 --
 ALTER TABLE `users`
-  MODIFY `id_user` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=2;
+  MODIFY `id_user` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=6;
 
 --
 -- Ketidakleluasaan untuk tabel pelimpahan (Dumped Tables)

@@ -1,6 +1,16 @@
 <?php
 session_start();
-require_once '../config/koneksi.php';
+require_once 'config/koneksi.php';
+
+// If already logged in, redirect based on role
+if (isset($_SESSION['user_id'])) {
+    if (isset($_SESSION['role']) && $_SESSION['role'] === 'admin') {
+        header("Location: admin/dashboard.php");
+    } else {
+        header("Location: index.php");
+    }
+    exit;
+}
 
 // Generate CSRF token if not exists
 if (empty($_SESSION['csrf_token'])) {
@@ -8,47 +18,66 @@ if (empty($_SESSION['csrf_token'])) {
 }
 
 $error = '';
-$success = '';
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
-    // Validate CSRF token
     if (!isset($_POST['csrf_token']) || !hash_equals($_SESSION['csrf_token'], $_POST['csrf_token'])) {
         $error = "Invalid CSRF token.";
     } else {
-        $nama = trim($_POST['nama'] ?? '');
         $email = trim($_POST['email'] ?? '');
         $password = $_POST['password'] ?? '';
 
-        if (empty($nama) || empty($email) || empty($password)) {
-            $error = "All fields are required.";
-        } elseif (!filter_var($email, FILTER_VALIDATE_EMAIL)) {
-            $error = "Invalid email format.";
+        if (empty($email) || empty($password)) {
+            $error = "Email and password are required.";
         } else {
-            // Check if email exists
-            $stmt = $koneksi->prepare("SELECT id_user FROM users WHERE email = ?");
+            $stmt = $koneksi->prepare("SELECT id_user, nama, password, role FROM users WHERE email = ?");
             $stmt->bind_param("s", $email);
             $stmt->execute();
-            $stmt->store_result();
-            
-            if ($stmt->num_rows > 0) {
-                $error = "Email is already registered.";
-            } else {
-                // Hash password
-                $hashed_password = password_hash($password, PASSWORD_DEFAULT);
-                $role = 'user'; // Default role
-                
-                // Insert new user
-                $insert_stmt = $koneksi->prepare("INSERT INTO users (nama, email, password, role) VALUES (?, ?, ?, ?)");
-                $insert_stmt->bind_param("ssss", $nama, $email, $hashed_password, $role);
-                
-                if ($insert_stmt->execute()) {
-                    $success = "Account created successfully! You can now login.";
-                    $nama = '';
-                    $email = '';
-                } else {
-                    $error = "An error occurred during registration. Please try again.";
+            $result = $stmt->get_result();
+
+            if ($row = $result->fetch_assoc()) {
+                $db_password = $row['password'];
+                $is_valid = false;
+                $needs_rehash = false;
+
+                // Check bcrypt
+                if (password_verify($password, $db_password)) {
+                    $is_valid = true;
                 }
-                $insert_stmt->close();
+                // Check legacy MD5
+                elseif (md5($password) === $db_password) {
+                    $is_valid = true;
+                    $needs_rehash = true;
+                }
+
+                if ($is_valid) {
+                    if ($needs_rehash) {
+                        $new_hash = password_hash($password, PASSWORD_DEFAULT);
+                        $update_stmt = $koneksi->prepare("UPDATE users SET password = ? WHERE id_user = ?");
+                        $update_stmt->bind_param("si", $new_hash, $row['id_user']);
+                        $update_stmt->execute();
+                        $update_stmt->close();
+                    }
+
+                    // Prevent Session Fixation
+                    session_regenerate_id(true);
+
+                    // Set session variables
+                    $_SESSION['user_id'] = $row['id_user'];
+                    $_SESSION['nama']    = $row['nama'];
+                    $_SESSION['role']    = $row['role'];
+
+                    // Redirect based on role
+                    if ($row['role'] === 'admin') {
+                        header("Location: admin/dashboard.php");
+                    } else {
+                        header("Location: index.php");
+                    }
+                    exit;
+                } else {
+                    $error = "Invalid email or password.";
+                }
+            } else {
+                $error = "Invalid email or password.";
             }
             $stmt->close();
         }
@@ -60,7 +89,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Create Account - Almaris Luxury Hotel</title>
+    <title>Login - Almaris Luxury Hotel</title>
     <!-- Fonts -->
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -70,7 +99,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     <!-- Bootstrap Icons -->
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.1/font/bootstrap-icons.css">
     <!-- Custom Styles -->
-    <link href="../assets/css/styles.css" rel="stylesheet">
+    <link href="assets/css/styles.css" rel="stylesheet">
     <style>
         .auth-section {
             min-height: 100vh;
@@ -82,7 +111,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         }
         .auth-card {
             width: 100%;
-            max-width: 500px;
+            max-width: 450px;
             padding: 40px;
         }
         .auth-input-group .input-group-text {
@@ -119,38 +148,25 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 </head>
 <body>
 
-    <a href="../index.php" class="back-home d-none d-md-flex align-items-center gap-2">
+    <a href="index.php" class="back-home d-none d-md-flex align-items-center gap-2">
         <i class="bi bi-arrow-left"></i> Back to Home
     </a>
 
     <section class="auth-section">
         <div class="glassmorphism auth-card">
             <div class="text-center mb-4">
-                <a href="../index.php" class="text-decoration-none">
+                <a href="index.php" class="text-decoration-none">
                     <h2 class="fw-bold text-navy mb-1" style="font-family: var(--font-heading);">ALMARIS</h2>
                 </a>
-                <p class="text-muted fs-7">Create an account to start your journey.</p>
+                <p class="text-muted fs-7">Welcome back! Please login to your account.</p>
             </div>
-            
+
             <?php if (!empty($error)): ?>
                 <div class="alert alert-danger p-2 fs-7 text-center"><?= htmlspecialchars($error) ?></div>
             <?php endif; ?>
-            <?php if (!empty($success)): ?>
-                <div class="alert alert-success p-2 fs-7 text-center">
-                    <?= htmlspecialchars($success) ?> <a href="login.php" class="alert-link">Login here</a>
-                </div>
-            <?php endif; ?>
 
-            <form action="register.php" method="POST">
+            <form action="login.php" method="POST">
                 <input type="hidden" name="csrf_token" value="<?= htmlspecialchars($_SESSION['csrf_token']) ?>">
-                
-                <div class="mb-4">
-                    <label class="form-label fw-medium text-navy fs-7">Full Name</label>
-                    <div class="input-group auth-input-group">
-                        <span class="input-group-text"><i class="bi bi-person"></i></span>
-                        <input type="text" class="form-control custom-input" name="nama" placeholder="Enter your full name" value="<?= isset($nama) ? htmlspecialchars($nama) : '' ?>" required>
-                    </div>
-                </div>
 
                 <div class="mb-4">
                     <label class="form-label fw-medium text-navy fs-7">Email Address</label>
@@ -159,29 +175,29 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                         <input type="email" class="form-control custom-input" name="email" placeholder="Enter your email" value="<?= isset($email) ? htmlspecialchars($email) : '' ?>" required>
                     </div>
                 </div>
-                
+
                 <div class="mb-4">
-                    <label class="form-label fw-medium text-navy fs-7">Password</label>
+                    <div class="d-flex justify-content-between align-items-center mb-1">
+                        <label class="form-label fw-medium text-navy fs-7 mb-0">Password</label>
+                    </div>
                     <div class="input-group auth-input-group">
                         <span class="input-group-text"><i class="bi bi-lock"></i></span>
-                        <input type="password" class="form-control custom-input" name="password" placeholder="Create a strong password" required>
+                        <input type="password" class="form-control custom-input" name="password" placeholder="Enter your password" required>
                     </div>
                 </div>
-                
+
                 <div class="mb-4 form-check">
-                    <input type="checkbox" class="form-check-input" id="agreeTerms" required>
-                    <label class="form-check-label text-muted fs-7" for="agreeTerms">
-                        I agree to the <a href="#" class="text-gold text-decoration-none">Terms of Service</a> & <a href="#" class="text-gold text-decoration-none">Privacy Policy</a>
-                    </label>
+                    <input type="checkbox" class="form-check-input" id="rememberMe" name="remember">
+                    <label class="form-check-label text-muted fs-7" for="rememberMe">Remember me</label>
                 </div>
-                
+
                 <button type="submit" class="btn btn-navy w-100 py-3 fw-bold mb-4" style="background: var(--color-navy); color: white;">
-                    Create Account <i class="bi bi-person-plus ms-2"></i>
+                    Sign In <i class="bi bi-box-arrow-in-right ms-2"></i>
                 </button>
             </form>
-            
+
             <div class="text-center">
-                <p class="text-muted fs-7 mb-0">Already have an account? <a href="login.php" class="text-gold fw-bold text-decoration-none">Sign In</a></p>
+                <p class="text-muted fs-7 mb-0">Don't have an account? <a href="register.php" class="text-gold fw-bold text-decoration-none">Create Account</a></p>
             </div>
         </div>
     </section>

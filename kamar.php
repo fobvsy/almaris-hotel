@@ -99,8 +99,8 @@
                             <span>Logout</span>
                         </a>
                     <?php else: ?>
-                        <a href="admin/login.php" class="text-white text-decoration-none nav-link-custom">Login</a>
-                        <a href="admin/register.php" class="btn btn-gold">Sign Up</a>
+                        <a href="login.php" class="text-white text-decoration-none nav-link-custom">Login</a>
+                        <a href="register.php" class="btn btn-gold">Sign Up</a>
                     <?php endif; ?>
                 </div>
             </div>
