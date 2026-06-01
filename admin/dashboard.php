@@ -30,6 +30,12 @@ $adminName = $_SESSION['nama'] ?? 'Admin User';
 $adminId = $_SESSION['user_id'];
 $queryAdmin = $koneksi->query("SELECT email FROM users WHERE id_user = $adminId");
 $adminEmail = $queryAdmin->fetch_assoc()['email'] ?? 'admin@almaris.com';
+
+$alert = '';
+if (isset($_SESSION['alert'])) {
+    $alert = $_SESSION['alert'];
+    unset($_SESSION['alert']);
+}
 ?>
 <!DOCTYPE html>
 <html lang="en">
@@ -48,6 +54,9 @@ $adminEmail = $queryAdmin->fetch_assoc()['email'] ?? 'admin@almaris.com';
     
     <!-- FontAwesome -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    
+    <!-- SweetAlert2 -->
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
 
     <style>
         :root {
@@ -361,5 +370,13 @@ $adminEmail = $queryAdmin->fetch_assoc()['email'] ?? 'admin@almaris.com';
 
     <!-- Bootstrap JS -->
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            <?php if (!empty($alert)): ?>
+                <?= $alert ?>
+            <?php endif; ?>
+        });
+    </script>
 </body>
 </html>

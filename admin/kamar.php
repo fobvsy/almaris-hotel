@@ -13,7 +13,11 @@ $adminId = $_SESSION['user_id'];
 $queryAdmin = $koneksi->query("SELECT email FROM users WHERE id_user = $adminId");
 $adminEmail = $queryAdmin->fetch_assoc()['email'] ?? 'admin@almaris.com';
 
-$msg = '';
+$alert = '';
+if (isset($_SESSION['alert'])) {
+    $alert = $_SESSION['alert'];
+    unset($_SESSION['alert']);
+}
 
 // Handle Delete
 if (isset($_GET['delete'])) {
@@ -31,11 +35,13 @@ if (isset($_GET['delete'])) {
     $stmt = $koneksi->prepare("DELETE FROM kamar WHERE id_kamar = ?");
     $stmt->bind_param("i", $id_kamar);
     if ($stmt->execute()) {
-        $msg = "<div class='alert alert-success alert-dismissible fade show'>Room deleted successfully. <button type='button' class='btn-close' data-bs-dismiss='alert'></button></div>";
+        $_SESSION['alert'] = "Swal.fire('Deleted!', 'Room has been deleted successfully.', 'success');";
     } else {
-        $msg = "<div class='alert alert-danger alert-dismissible fade show'>Failed to delete room. <button type='button' class='btn-close' data-bs-dismiss='alert'></button></div>";
+        $_SESSION['alert'] = "Swal.fire('Error!', 'Failed to delete room.', 'error');";
     }
     $stmt->close();
+    header("Location: kamar.php");
+    exit;
 }
 
 // Handle Add/Edit Room
@@ -61,9 +67,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $stmt = $koneksi->prepare("INSERT INTO kamar (nomor_kamar, tipe_kamar, harga, status, foto) VALUES (?, ?, ?, ?, ?)");
         $stmt->bind_param("ssiss", $nomor_kamar, $tipe_kamar, $harga, $status, $foto);
         if ($stmt->execute()) {
-            $msg = "<div class='alert alert-success alert-dismissible fade show'>Room added successfully. <button type='button' class='btn-close' data-bs-dismiss='alert'></button></div>";
+            $_SESSION['alert'] = "Swal.fire('Success!', 'Room added successfully.', 'success');";
         } else {
-            $msg = "<div class='alert alert-danger alert-dismissible fade show'>Failed to add room. (Perhaps duplicate room number?) <button type='button' class='btn-close' data-bs-dismiss='alert'></button></div>";
+            $_SESSION['alert'] = "Swal.fire('Error!', 'Failed to add room. Perhaps a duplicate room number?', 'error');";
         }
         $stmt->close();
     } elseif ($action === 'edit') {
@@ -85,12 +91,14 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         }
         
         if ($stmt->execute()) {
-            $msg = "<div class='alert alert-success alert-dismissible fade show'>Room updated successfully. <button type='button' class='btn-close' data-bs-dismiss='alert'></button></div>";
+            $_SESSION['alert'] = "Swal.fire('Success!', 'Room updated successfully.', 'success');";
         } else {
-            $msg = "<div class='alert alert-danger alert-dismissible fade show'>Failed to update room. <button type='button' class='btn-close' data-bs-dismiss='alert'></button></div>";
+            $_SESSION['alert'] = "Swal.fire('Error!', 'Failed to update room.', 'error');";
         }
         $stmt->close();
     }
+    header("Location: kamar.php");
+    exit;
 }
 
 // Fetch all rooms
@@ -114,6 +122,9 @@ $rooms = $queryKamar->fetch_all(MYSQLI_ASSOC);
     
     <!-- FontAwesome -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    
+    <!-- SweetAlert2 -->
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
 
     <style>
         :root {
@@ -401,7 +412,6 @@ $rooms = $queryKamar->fetch_all(MYSQLI_ASSOC);
             </div>
         </div>
 
-        <?= $msg ?>
         <div class="modern-card">
             <div class="d-flex justify-content-between align-items-center mb-4">
                 <h5 class="mb-0" style="color: var(--primary); font-weight: 600;">Room List</h5>
@@ -471,9 +481,9 @@ $rooms = $queryKamar->fetch_all(MYSQLI_ASSOC);
                                         title="Edit">
                                         <i class="fas fa-pen"></i>
                                     </button>
-                                    <a href="kamar.php?delete=<?= $room['id_kamar'] ?>" class="action-btn btn-delete" title="Delete" onclick="return confirm('Are you sure you want to delete this room? This action cannot be undone.');" style="text-decoration: none;">
+                                    <button class="action-btn btn-delete" onclick="confirmDelete(<?= $room['id_kamar'] ?>)" title="Delete">
                                         <i class="fas fa-trash"></i>
-                                    </a>
+                                    </button>
                                 </td>
                             </tr>
                             <?php endforeach; ?>
@@ -656,7 +666,29 @@ $rooms = $queryKamar->fetch_all(MYSQLI_ASSOC);
                     }
                 });
             }
+
+            // Show SweetAlert if session alert exists
+            <?php if (!empty($alert)): ?>
+                <?= $alert ?>
+            <?php endif; ?>
         });
+
+        // SweetAlert Delete Confirmation
+        function confirmDelete(id) {
+            Swal.fire({
+                title: 'Are you sure?',
+                text: "You won't be able to revert this! This action will remove the room permanently.",
+                icon: 'warning',
+                showCancelButton: true,
+                confirmButtonColor: '#991B1B',
+                cancelButtonColor: '#6B7280',
+                confirmButtonText: 'Yes, delete it!'
+            }).then((result) => {
+                if (result.isConfirmed) {
+                    window.location.href = 'kamar.php?delete=' + id;
+                }
+            })
+        }
     </script>
 </body>
 </html>

@@ -1,3 +1,72 @@
+<?php
+session_start();
+require_once '../config/koneksi.php';
+
+// Auth Guard
+if (!isset($_SESSION['user_id']) || $_SESSION['role'] !== 'admin') {
+    header("Location: ../login.php");
+    exit;
+}
+
+$adminName = $_SESSION['nama'] ?? 'Admin';
+$adminId = $_SESSION['user_id'];
+$queryAdmin = $koneksi->query("SELECT email FROM users WHERE id_user = $adminId");
+$adminEmail = $queryAdmin->fetch_assoc()['email'] ?? 'admin@almaris.com';
+
+// Filter handling
+$whereClauses = [];
+$params = [];
+$types = "";
+
+$startDate = $_GET['start_date'] ?? '';
+$endDate = $_GET['end_date'] ?? '';
+$statusFilter = $_GET['status'] ?? 'all';
+
+if (!empty($startDate)) {
+    $whereClauses[] = "r.check_in >= ?";
+    $params[] = $startDate;
+    $types .= "s";
+}
+if (!empty($endDate)) {
+    $whereClauses[] = "r.check_in <= ?";
+    $params[] = $endDate;
+    $types .= "s";
+}
+if ($statusFilter !== 'all') {
+    $whereClauses[] = "r.status = ?";
+    $params[] = $statusFilter;
+    $types .= "s";
+}
+
+$whereSql = "";
+if (count($whereClauses) > 0) {
+    $whereSql = "WHERE " . implode(" AND ", $whereClauses);
+}
+
+// Fetch data
+$sql = "SELECT r.id_reservasi, r.check_in, r.check_out, r.total_harga, r.status, u.nama, k.tipe_kamar 
+        FROM reservasi r 
+        JOIN users u ON r.id_user = u.id_user 
+        JOIN kamar k ON r.id_kamar = k.id_kamar 
+        $whereSql 
+        ORDER BY r.created_at DESC";
+
+$stmt = $koneksi->prepare($sql);
+if (!empty($params)) {
+    $stmt->bind_param($types, ...$params);
+}
+$stmt->execute();
+$result = $stmt->get_result();
+$reservations = $result->fetch_all(MYSQLI_ASSOC);
+$stmt->close();
+
+// Calculate Totals
+$totalReservations = count($reservations);
+$totalRevenue = 0;
+foreach ($reservations as $res) {
+    $totalRevenue += $res['total_harga'];
+}
+?>
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -15,6 +84,9 @@
     
     <!-- FontAwesome -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    
+    <!-- SweetAlert2 -->
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
 
     <style>
         :root {
@@ -258,11 +330,11 @@
             </div>
             <div class="user-profile d-flex align-items-center">
                 <div class="text-end me-3">
-                    <div class="fw-bold" style="font-size: 0.9rem; color: var(--primary);">Admin User</div>
-                    <div class="text-muted" style="font-size: 0.75rem;">admin@almaris.com</div>
+                    <div class="fw-bold" style="font-size: 0.9rem; color: var(--primary);"><?= htmlspecialchars($adminName) ?></div>
+                    <div class="text-muted" style="font-size: 0.75rem;"><?= htmlspecialchars($adminEmail) ?></div>
                 </div>
                 <div class="user-avatar">
-                    A
+                    <?= strtoupper(substr($adminName, 0, 1)) ?>
                 </div>
             </div>
         </div>
@@ -277,30 +349,33 @@
                 </div>
 
                 <!-- Filter Controls -->
-                <div class="row g-3 mb-4 p-4 rounded-3" style="background-color: #F8FAFC; border: 1px solid #E2E8F0;">
+                <form method="GET" action="laporan.php" class="row g-3 mb-4 p-4 rounded-3" style="background-color: #F8FAFC; border: 1px solid #E2E8F0;">
                     <div class="col-md-4">
                         <label class="form-label" style="font-size: 0.85rem; font-weight: 600; color: var(--primary);">Start Date</label>
-                        <input type="date" class="form-control">
+                        <input type="date" name="start_date" class="form-control" value="<?= htmlspecialchars($startDate) ?>">
                     </div>
                     <div class="col-md-4">
                         <label class="form-label" style="font-size: 0.85rem; font-weight: 600; color: var(--primary);">End Date</label>
-                        <input type="date" class="form-control">
+                        <input type="date" name="end_date" class="form-control" value="<?= htmlspecialchars($endDate) ?>">
                     </div>
                     <div class="col-md-4">
                         <label class="form-label" style="font-size: 0.85rem; font-weight: 600; color: var(--primary);">Status Filter</label>
                         <div class="d-flex gap-2">
-                            <select class="form-select w-100">
-                                <option value="all">All Status</option>
-                                <option value="checkin">Check-in</option>
-                                <option value="checkout">Check-out</option>
-                                <option value="pending">Pending</option>
+                            <select name="status" class="form-select w-100">
+                                <option value="all" <?= $statusFilter === 'all' ? 'selected' : '' ?>>All Status</option>
+                                <option value="checkin" <?= $statusFilter === 'checkin' ? 'selected' : '' ?>>Check-in</option>
+                                <option value="checkout" <?= $statusFilter === 'checkout' ? 'selected' : '' ?>>Check-out</option>
+                                <option value="pending" <?= $statusFilter === 'pending' ? 'selected' : '' ?>>Pending</option>
                             </select>
-                            <button class="btn" style="background-color: var(--primary); color: white; min-width: 100px;">
+                            <button type="submit" class="btn" style="background-color: var(--primary); color: white; min-width: 100px;">
                                 <i class="fas fa-filter"></i> Filter
                             </button>
+                            <a href="laporan.php" class="btn btn-outline-secondary" title="Reset Filters">
+                                <i class="fas fa-undo"></i>
+                            </a>
                         </div>
                     </div>
-                </div>
+                </form>
             </div>
 
             <!-- Summary Statistics -->
@@ -308,13 +383,13 @@
                 <div class="col-md-6">
                     <div class="p-3 border rounded-3 text-center bg-white" style="border-left: 4px solid var(--primary) !important;">
                         <span class="d-block text-muted fs-7 text-uppercase fw-bold mb-1">Total Reservations (Filtered)</span>
-                        <span class="fs-3 fw-bold" style="color: var(--primary);">124</span>
+                        <span class="fs-3 fw-bold" style="color: var(--primary);"><?= $totalReservations ?></span>
                     </div>
                 </div>
                 <div class="col-md-6">
                     <div class="p-3 border rounded-3 text-center bg-white" style="border-left: 4px solid var(--accent) !important;">
                         <span class="d-block text-muted fs-7 text-uppercase fw-bold mb-1">Total Revenue (Filtered)</span>
-                        <span class="fs-3 fw-bold" style="color: var(--accent);">Rp 250,500,000</span>
+                        <span class="fs-3 fw-bold" style="color: var(--accent);">Rp <?= number_format($totalRevenue, 0, ',', '.') ?></span>
                     </div>
                 </div>
             </div>
@@ -334,49 +409,28 @@
                         </tr>
                     </thead>
                     <tbody>
-                        <!-- Dummy Data Row 1 -->
-                        <tr>
-                            <td><span class="text-muted fw-bold">#RES-1001</span></td>
-                            <td>John Doe</td>
-                            <td>Deluxe Ocean View</td>
-                            <td>2026-06-01</td>
-                            <td>2026-06-03</td>
-                            <td class="fw-medium">Rp 3,000,000</td>
-                            <td><span class="status-badge status-checkin">Check-in</span></td>
-                        </tr>
-                        
-                        <!-- Dummy Data Row 2 -->
-                        <tr>
-                            <td><span class="text-muted fw-bold">#RES-1002</span></td>
-                            <td>Sarah Wilson</td>
-                            <td>Presidential Suite</td>
-                            <td>2026-06-05</td>
-                            <td>2026-06-10</td>
-                            <td class="fw-medium">Rp 27,500,000</td>
-                            <td><span class="status-badge status-pending">Pending</span></td>
-                        </tr>
-
-                        <!-- Dummy Data Row 3 -->
-                        <tr>
-                            <td><span class="text-muted fw-bold">#RES-1003</span></td>
-                            <td>Michael Brown</td>
-                            <td>Standard City View</td>
-                            <td>2026-05-25</td>
-                            <td>2026-05-27</td>
-                            <td class="fw-medium">Rp 1,600,000</td>
-                            <td><span class="status-badge status-checkout">Check-out</span></td>
-                        </tr>
-
-                        <!-- Dummy Data Row 4 -->
-                        <tr>
-                            <td><span class="text-muted fw-bold">#RES-1004</span></td>
-                            <td>Emma Davis</td>
-                            <td>Executive Suite</td>
-                            <td>2026-05-18</td>
-                            <td>2026-05-20</td>
-                            <td class="fw-medium">Rp 5,600,000</td>
-                            <td><span class="status-badge status-checkout">Check-out</span></td>
-                        </tr>
+                        <?php if (empty($reservations)): ?>
+                            <tr>
+                                <td colspan="7" class="text-center py-4 text-muted">No reservations found for the selected filters.</td>
+                            </tr>
+                        <?php else: ?>
+                            <?php foreach ($reservations as $res): ?>
+                                <?php
+                                    $badgeClass = 'status-pending';
+                                    if ($res['status'] === 'checkin') $badgeClass = 'status-checkin';
+                                    if ($res['status'] === 'checkout') $badgeClass = 'status-checkout';
+                                ?>
+                                <tr>
+                                    <td><span class="text-muted fw-bold">#RES-<?= htmlspecialchars($res['id_reservasi']) ?></span></td>
+                                    <td><?= htmlspecialchars($res['nama']) ?></td>
+                                    <td><?= htmlspecialchars($res['tipe_kamar']) ?></td>
+                                    <td><?= htmlspecialchars($res['check_in']) ?></td>
+                                    <td><?= htmlspecialchars($res['check_out']) ?></td>
+                                    <td class="fw-medium">Rp <?= number_format($res['total_harga'], 0, ',', '.') ?></td>
+                                    <td><span class="status-badge <?= $badgeClass ?>"><?= ucfirst(htmlspecialchars($res['status'])) ?></span></td>
+                                </tr>
+                            <?php endforeach; ?>
+                        <?php endif; ?>
                     </tbody>
                 </table>
             </div>
@@ -399,6 +453,17 @@
 
     <!-- Bootstrap JS -->
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
-    
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            <?php if (empty($reservations) && (!empty($startDate) || !empty($endDate) || $statusFilter !== 'all')): ?>
+                Swal.fire({
+                    icon: 'info',
+                    title: 'No Data Found',
+                    text: 'No reservations match your current filter criteria.',
+                    confirmButtonColor: '#0F172A'
+                });
+            <?php endif; ?>
+        });
+    </script>
 </body>
 </html>
