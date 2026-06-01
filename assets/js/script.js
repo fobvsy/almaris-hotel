@@ -19,10 +19,10 @@ document.addEventListener('DOMContentLoaded', () => {
     const navbar = document.getElementById('navbar');
     const sections = document.querySelectorAll('section, footer');
     const navLinks = document.querySelectorAll('.navbar-nav .nav-link');
-    
+
     function handleScroll() {
         if (!navbar) return;
-        
+
         // Navbar background effect
         if (window.scrollY > 50) {
             navbar.classList.add('scrolled');
@@ -55,7 +55,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
     if (navbar) {
         window.addEventListener('scroll', handleScroll);
-        
+
         // Trigger once on load in case user refreshed while scrolled down
         handleScroll();
     }
@@ -64,16 +64,16 @@ document.addEventListener('DOMContentLoaded', () => {
     document.querySelectorAll('a[href^="#"]').forEach(anchor => {
         anchor.addEventListener('click', function (e) {
             const targetId = this.getAttribute('href');
-            if(targetId === '#') return;
-            
+            if (targetId === '#') return;
+
             const targetElement = document.querySelector(targetId);
-            
-            if(targetElement) {
+
+            if (targetElement) {
                 e.preventDefault();
                 const headerOffset = 80;
                 const elementPosition = targetElement.getBoundingClientRect().top;
                 const offsetPosition = elementPosition + window.pageYOffset - headerOffset;
-    
+
                 window.scrollTo({
                     top: offsetPosition,
                     behavior: 'smooth'
@@ -84,20 +84,20 @@ document.addEventListener('DOMContentLoaded', () => {
 
     // 4. Booking Bar Demo Interactivity (Prevent submission since it's frontend only)
     const bookingBtn = document.querySelector('.booking-bar button');
-    if(bookingBtn) {
+    if (bookingBtn) {
         bookingBtn.addEventListener('click', (e) => {
             e.preventDefault();
-            
+
             // Simple visual feedback
             const originalText = bookingBtn.innerHTML;
             bookingBtn.innerHTML = '<span class="spinner-border spinner-border-sm me-2" role="status" aria-hidden="true"></span> Checking...';
             bookingBtn.disabled = true;
-            
+
             setTimeout(() => {
                 bookingBtn.innerHTML = '<i class="bi bi-check-circle-fill me-2"></i> Available';
                 bookingBtn.classList.remove('btn-gold');
                 bookingBtn.classList.add('btn-success');
-                
+
                 setTimeout(() => {
                     bookingBtn.innerHTML = originalText;
                     bookingBtn.disabled = false;

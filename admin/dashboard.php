@@ -1,3 +1,36 @@
+<?php
+session_start();
+require_once '../config/koneksi.php';
+
+if (!isset($_SESSION['user_id']) || $_SESSION['role'] !== 'admin') {
+    header("Location: ../login.php");
+    exit;
+}
+
+$queryKamar = $koneksi->query("SELECT COUNT(*) as total FROM kamar");
+$totalKamar = $queryKamar->fetch_assoc()['total'];
+
+$queryUser = $koneksi->query("SELECT COUNT(*) as total FROM users WHERE role = 'user'");
+$totalUser = $queryUser->fetch_assoc()['total'];
+
+$queryReservasi = $koneksi->query("SELECT COUNT(*) as total FROM reservasi");
+$totalReservasi = $queryReservasi->fetch_assoc()['total'];
+
+$queryRecent = $koneksi->query(
+    "SELECT r.id_reservasi, r.check_in, r.check_out, r.status, u.nama, k.tipe_kamar 
+     FROM reservasi r 
+     JOIN users u ON r.id_user = u.id_user 
+     JOIN kamar k ON r.id_kamar = k.id_kamar 
+     ORDER BY r.created_at DESC 
+     LIMIT 5"
+);
+$recentReservations = $queryRecent->fetch_all(MYSQLI_ASSOC);
+
+$adminName = $_SESSION['nama'] ?? 'Admin User';
+$adminId = $_SESSION['user_id'];
+$queryAdmin = $koneksi->query("SELECT email FROM users WHERE id_user = $adminId");
+$adminEmail = $queryAdmin->fetch_assoc()['email'] ?? 'admin@almaris.com';
+?>
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -233,11 +266,11 @@
             </div>
             <div class="user-profile d-flex align-items-center">
                 <div class="text-end me-3">
-                    <div class="fw-bold" style="font-size: 0.9rem; color: var(--primary);">Admin User</div>
-                    <div class="text-muted" style="font-size: 0.75rem;">admin@almaris.com</div>
+                    <div class="fw-bold" style="font-size: 0.9rem; color: var(--primary);"><?= htmlspecialchars($adminName) ?></div>
+                    <div class="text-muted" style="font-size: 0.75rem;"><?= htmlspecialchars($adminEmail) ?></div>
                 </div>
                 <div style="width: 40px; height: 40px; border-radius: 50%; background-color: var(--primary); color: var(--accent); display: flex; align-items: center; justify-content: center; font-weight: bold;">
-                    A
+                    <?= strtoupper(substr($adminName, 0, 1)) ?>
                 </div>
             </div>
         </div>
@@ -251,7 +284,7 @@
                     </div>
                     <div class="stat-info">
                         <p>Total Kamar</p>
-                        <h3>24</h3>
+                        <h3><?= $totalKamar ?></h3>
                     </div>
                 </div>
             </div>
@@ -262,7 +295,7 @@
                     </div>
                     <div class="stat-info">
                         <p>Total User</p>
-                        <h3>156</h3>
+                        <h3><?= $totalUser ?></h3>
                     </div>
                 </div>
             </div>
@@ -273,7 +306,7 @@
                     </div>
                     <div class="stat-info">
                         <p>Total Reservasi</p>
-                        <h3>89</h3>
+                        <h3><?= $totalReservasi ?></h3>
                     </div>
                 </div>
             </div>
@@ -299,38 +332,27 @@
                         </tr>
                     </thead>
                     <tbody>
-                        <tr>
-                            <td><span class="fw-bold text-muted">#RES-1001</span></td>
-                            <td>John Doe</td>
-                            <td>Deluxe Ocean View</td>
-                            <td>2026-06-01</td>
-                            <td>2026-06-03</td>
-                            <td><span class="status-badge status-pending">Pending</span></td>
-                        </tr>
-                        <tr>
-                            <td><span class="fw-bold text-muted">#RES-1002</span></td>
-                            <td>Jane Smith</td>
-                            <td>Executive Suite</td>
-                            <td>2026-05-28</td>
-                            <td>2026-05-30</td>
-                            <td><span class="status-badge status-checkin">Check-in</span></td>
-                        </tr>
-                        <tr>
-                            <td><span class="fw-bold text-muted">#RES-1003</span></td>
-                            <td>Michael Brown</td>
-                            <td>Standard City View</td>
-                            <td>2026-05-25</td>
-                            <td>2026-05-27</td>
-                            <td><span class="status-badge status-checkout">Check-out</span></td>
-                        </tr>
-                        <tr>
-                            <td><span class="fw-bold text-muted">#RES-1004</span></td>
-                            <td>Sarah Wilson</td>
-                            <td>Presidential Suite</td>
-                            <td>2026-06-05</td>
-                            <td>2026-06-10</td>
-                            <td><span class="status-badge status-pending">Pending</span></td>
-                        </tr>
+                        <?php if (empty($recentReservations)): ?>
+                            <tr>
+                                <td colspan="6" class="text-center text-muted py-4">No recent reservations found.</td>
+                            </tr>
+                        <?php else: ?>
+                            <?php foreach ($recentReservations as $res): ?>
+                                <?php
+                                    $badgeClass = 'status-pending';
+                                    if ($res['status'] === 'checkin') $badgeClass = 'status-checkin';
+                                    if ($res['status'] === 'checkout') $badgeClass = 'status-checkout';
+                                ?>
+                                <tr>
+                                    <td><span class="fw-bold text-muted">#RES-<?= htmlspecialchars($res['id_reservasi']) ?></span></td>
+                                    <td><?= htmlspecialchars($res['nama']) ?></td>
+                                    <td><?= htmlspecialchars($res['tipe_kamar']) ?></td>
+                                    <td><?= htmlspecialchars($res['check_in']) ?></td>
+                                    <td><?= htmlspecialchars($res['check_out']) ?></td>
+                                    <td><span class="status-badge <?= $badgeClass ?>"><?= ucfirst(htmlspecialchars($res['status'])) ?></span></td>
+                                </tr>
+                            <?php endforeach; ?>
+                        <?php endif; ?>
                     </tbody>
                 </table>
             </div>
