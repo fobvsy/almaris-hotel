@@ -1,3 +1,102 @@
+<?php
+session_start();
+require_once '../config/koneksi.php';
+
+// Auth Guard
+if (!isset($_SESSION['user_id']) || $_SESSION['role'] !== 'admin') {
+    header("Location: ../login.php");
+    exit;
+}
+
+$adminName = $_SESSION['nama'] ?? 'Admin';
+$adminId = $_SESSION['user_id'];
+$queryAdmin = $koneksi->query("SELECT email FROM users WHERE id_user = $adminId");
+$adminEmail = $queryAdmin->fetch_assoc()['email'] ?? 'admin@almaris.com';
+
+$msg = '';
+
+// Handle Delete
+if (isset($_GET['delete'])) {
+    $id_kamar = (int)$_GET['delete'];
+    
+    // Get old photo to delete file
+    $qFoto = $koneksi->query("SELECT foto FROM kamar WHERE id_kamar = $id_kamar");
+    if ($qFoto && $qFoto->num_rows > 0) {
+        $foto = $qFoto->fetch_assoc()['foto'];
+        if ($foto && file_exists("../assets/images/" . $foto)) {
+            unlink("../assets/images/" . $foto);
+        }
+    }
+    
+    $stmt = $koneksi->prepare("DELETE FROM kamar WHERE id_kamar = ?");
+    $stmt->bind_param("i", $id_kamar);
+    if ($stmt->execute()) {
+        $msg = "<div class='alert alert-success alert-dismissible fade show'>Room deleted successfully. <button type='button' class='btn-close' data-bs-dismiss='alert'></button></div>";
+    } else {
+        $msg = "<div class='alert alert-danger alert-dismissible fade show'>Failed to delete room. <button type='button' class='btn-close' data-bs-dismiss='alert'></button></div>";
+    }
+    $stmt->close();
+}
+
+// Handle Add/Edit Room
+if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+    $nomor_kamar = $_POST['nomor_kamar'] ?? '';
+    $tipe_kamar = $_POST['tipe_kamar'] ?? '';
+    $harga = $_POST['harga'] ?? 0;
+    $status = $_POST['status'] ?? 'tersedia';
+    $action = $_POST['action'] ?? '';
+    
+    // Photo upload handling
+    $foto = '';
+    $fotoPath = '';
+    if (isset($_FILES['foto']) && $_FILES['foto']['error'] === UPLOAD_ERR_OK) {
+        $tmp = $_FILES['foto']['tmp_name'];
+        $ext = pathinfo($_FILES['foto']['name'], PATHINFO_EXTENSION);
+        $foto = "room_" . time() . "_" . rand(1000,9999) . "." . $ext;
+        $fotoPath = "../assets/images/" . $foto;
+        move_uploaded_file($tmp, $fotoPath);
+    }
+    
+    if ($action === 'add') {
+        $stmt = $koneksi->prepare("INSERT INTO kamar (nomor_kamar, tipe_kamar, harga, status, foto) VALUES (?, ?, ?, ?, ?)");
+        $stmt->bind_param("ssiss", $nomor_kamar, $tipe_kamar, $harga, $status, $foto);
+        if ($stmt->execute()) {
+            $msg = "<div class='alert alert-success alert-dismissible fade show'>Room added successfully. <button type='button' class='btn-close' data-bs-dismiss='alert'></button></div>";
+        } else {
+            $msg = "<div class='alert alert-danger alert-dismissible fade show'>Failed to add room. (Perhaps duplicate room number?) <button type='button' class='btn-close' data-bs-dismiss='alert'></button></div>";
+        }
+        $stmt->close();
+    } elseif ($action === 'edit') {
+        $id_kamar = (int)$_POST['id_kamar'];
+        if ($foto !== '') {
+            // Get old photo to delete
+            $qFoto = $koneksi->query("SELECT foto FROM kamar WHERE id_kamar = $id_kamar");
+            if ($qFoto && $qFoto->num_rows > 0) {
+                $oldFoto = $qFoto->fetch_assoc()['foto'];
+                if ($oldFoto && file_exists("../assets/images/" . $oldFoto)) {
+                    unlink("../assets/images/" . $oldFoto);
+                }
+            }
+            $stmt = $koneksi->prepare("UPDATE kamar SET nomor_kamar=?, tipe_kamar=?, harga=?, status=?, foto=? WHERE id_kamar=?");
+            $stmt->bind_param("ssissi", $nomor_kamar, $tipe_kamar, $harga, $status, $foto, $id_kamar);
+        } else {
+            $stmt = $koneksi->prepare("UPDATE kamar SET nomor_kamar=?, tipe_kamar=?, harga=?, status=? WHERE id_kamar=?");
+            $stmt->bind_param("ssisi", $nomor_kamar, $tipe_kamar, $harga, $status, $id_kamar);
+        }
+        
+        if ($stmt->execute()) {
+            $msg = "<div class='alert alert-success alert-dismissible fade show'>Room updated successfully. <button type='button' class='btn-close' data-bs-dismiss='alert'></button></div>";
+        } else {
+            $msg = "<div class='alert alert-danger alert-dismissible fade show'>Failed to update room. <button type='button' class='btn-close' data-bs-dismiss='alert'></button></div>";
+        }
+        $stmt->close();
+    }
+}
+
+// Fetch all rooms
+$queryKamar = $koneksi->query("SELECT * FROM kamar ORDER BY created_at DESC");
+$rooms = $queryKamar->fetch_all(MYSQLI_ASSOC);
+?>
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -263,7 +362,7 @@
             <small style="color: rgba(255,255,255,0.5);">Admin Dashboard</small>
         </div>
         <div class="nav-menu">
-            <a href="#" class="nav-item">
+            <a href="dashboard.php" class="nav-item">
                 <i class="fas fa-home"></i> Dashboard
             </a>
             <a href="kamar.php" class="nav-item active">
@@ -278,7 +377,7 @@
             <a href="laporan.php" class="nav-item">
                 <i class="fas fa-chart-line"></i> Reports
             </a>
-            <a href="#" class="nav-item mt-5 text-danger">
+            <a href="../logout.php" class="nav-item mt-5 text-danger">
                 <i class="fas fa-sign-out-alt text-danger"></i> Logout
             </a>
         </div>
@@ -293,15 +392,16 @@
             </div>
             <div class="user-profile d-flex align-items-center">
                 <div class="text-end me-3">
-                    <div class="fw-bold" style="font-size: 0.9rem; color: var(--primary);">Admin User</div>
-                    <div class="text-muted" style="font-size: 0.75rem;">admin@almaris.com</div>
+                    <div class="fw-bold" style="font-size: 0.9rem; color: var(--primary);"><?= htmlspecialchars($adminName) ?></div>
+                    <div class="text-muted" style="font-size: 0.75rem;"><?= htmlspecialchars($adminEmail) ?></div>
                 </div>
                 <div style="width: 40px; height: 40px; border-radius: 50%; background-color: var(--primary); color: var(--accent); display: flex; align-items: center; justify-content: center; font-weight: bold;">
-                    A
+                    <?= strtoupper(substr($adminName, 0, 1)) ?>
                 </div>
             </div>
         </div>
 
+        <?= $msg ?>
         <div class="modern-card">
             <div class="d-flex justify-content-between align-items-center mb-4">
                 <h5 class="mb-0" style="color: var(--primary); font-weight: 600;">Room List</h5>
@@ -340,83 +440,44 @@
                         </tr>
                     </thead>
                     <tbody>
-                        <!-- Dummy Data Row 1 -->
-                        <tr>
-                            <td>
-                                <img src="https://images.unsplash.com/photo-1611892440504-42a792e24d32?auto=format&fit=crop&w=150&q=80" alt="Room 101" class="room-img-thumb">
-                            </td>
-                            <td><span class="fw-bold">101</span></td>
-                            <td>Standard</td>
-                            <td>Rp 350,000</td>
-                            <td><span class="status-badge status-tersedia">Tersedia</span></td>
-                            <td class="text-center">
-                                <button class="action-btn btn-edit" data-bs-toggle="modal" data-bs-target="#editRoomModal" title="Edit">
-                                    <i class="fas fa-pen"></i>
-                                </button>
-                                <button class="action-btn btn-delete" title="Delete">
-                                    <i class="fas fa-trash"></i>
-                                </button>
-                            </td>
-                        </tr>
-                        
-                        <!-- Dummy Data Row 2 -->
-                        <tr>
-                            <td>
-                                <img src="https://images.unsplash.com/photo-1590490360182-c33d57733427?auto=format&fit=crop&w=150&q=80" alt="Room 201" class="room-img-thumb">
-                            </td>
-                            <td><span class="fw-bold">201</span></td>
-                            <td>Deluxe</td>
-                            <td>Rp 550,000</td>
-                            <td><span class="status-badge status-dipesan">Dipesan</span></td>
-                            <td class="text-center">
-                                <button class="action-btn btn-edit" data-bs-toggle="modal" data-bs-target="#editRoomModal" title="Edit">
-                                    <i class="fas fa-pen"></i>
-                                </button>
-                                <button class="action-btn btn-delete" title="Delete">
-                                    <i class="fas fa-trash"></i>
-                                </button>
-                            </td>
-                        </tr>
-                        
-                        <!-- Dummy Data Row 3 -->
-                        <tr>
-                            <td>
-                                <img src="https://images.unsplash.com/photo-1582719478250-c894e4dc240e?auto=format&fit=crop&w=150&q=80" alt="Room 301" class="room-img-thumb">
-                            </td>
-                            <td><span class="fw-bold">301</span></td>
-                            <td>Suite</td>
-                            <td>Rp 950,000</td>
-                            <td><span class="status-badge status-tersedia">Tersedia</span></td>
-                            <td class="text-center">
-                                <button class="action-btn btn-edit" data-bs-toggle="modal" data-bs-target="#editRoomModal" title="Edit">
-                                    <i class="fas fa-pen"></i>
-                                </button>
-                                <button class="action-btn btn-delete" title="Delete">
-                                    <i class="fas fa-trash"></i>
-                                </button>
-                            </td>
-                        </tr>
-
-                        <!-- Dummy Data Row 4 -->
-                        <tr>
-                            <td>
-                                <div class="bg-light d-flex align-items-center justify-content-center room-img-thumb">
-                                    <i class="fas fa-image text-muted"></i>
-                                </div>
-                            </td>
-                            <td><span class="fw-bold">401</span></td>
-                            <td>Presidential</td>
-                            <td>Rp 1,800,000</td>
-                            <td><span class="status-badge status-tersedia">Tersedia</span></td>
-                            <td class="text-center">
-                                <button class="action-btn btn-edit" data-bs-toggle="modal" data-bs-target="#editRoomModal" title="Edit">
-                                    <i class="fas fa-pen"></i>
-                                </button>
-                                <button class="action-btn btn-delete" title="Delete">
-                                    <i class="fas fa-trash"></i>
-                                </button>
-                            </td>
-                        </tr>
+                        <?php if (empty($rooms)): ?>
+                            <tr>
+                                <td colspan="6" class="text-center py-4 text-muted">No rooms found.</td>
+                            </tr>
+                        <?php else: ?>
+                            <?php foreach ($rooms as $room): ?>
+                            <tr>
+                                <td>
+                                    <?php if (!empty($room['foto']) && file_exists("../assets/images/" . $room['foto'])): ?>
+                                        <img src="../assets/images/<?= htmlspecialchars($room['foto']) ?>" alt="Room <?= htmlspecialchars($room['nomor_kamar']) ?>" class="room-img-thumb">
+                                    <?php else: ?>
+                                        <div class="bg-light d-flex align-items-center justify-content-center room-img-thumb">
+                                            <i class="fas fa-image text-muted"></i>
+                                        </div>
+                                    <?php endif; ?>
+                                </td>
+                                <td><span class="fw-bold"><?= htmlspecialchars($room['nomor_kamar']) ?></span></td>
+                                <td><?= htmlspecialchars($room['tipe_kamar']) ?></td>
+                                <td>Rp <?= number_format($room['harga'], 0, ',', '.') ?></td>
+                                <td><span class="status-badge status-<?= $room['status'] === 'tersedia' ? 'tersedia' : 'dipesan' ?>"><?= ucfirst(htmlspecialchars($room['status'])) ?></span></td>
+                                <td class="text-center">
+                                    <button class="action-btn btn-edit" data-bs-toggle="modal" data-bs-target="#editRoomModal" 
+                                        data-id="<?= $room['id_kamar'] ?>"
+                                        data-nomor="<?= htmlspecialchars($room['nomor_kamar']) ?>"
+                                        data-tipe="<?= htmlspecialchars($room['tipe_kamar']) ?>"
+                                        data-harga="<?= $room['harga'] ?>"
+                                        data-status="<?= $room['status'] ?>"
+                                        data-foto="<?= htmlspecialchars($room['foto'] ?? '') ?>"
+                                        title="Edit">
+                                        <i class="fas fa-pen"></i>
+                                    </button>
+                                    <a href="kamar.php?delete=<?= $room['id_kamar'] ?>" class="action-btn btn-delete" title="Delete" onclick="return confirm('Are you sure you want to delete this room? This action cannot be undone.');" style="text-decoration: none;">
+                                        <i class="fas fa-trash"></i>
+                                    </a>
+                                </td>
+                            </tr>
+                            <?php endforeach; ?>
+                        <?php endif; ?>
                     </tbody>
                 </table>
             </div>
@@ -446,44 +507,44 @@
                     <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
                 </div>
                 <div class="modal-body">
-                    <form>
+                    <form action="kamar.php" method="POST" enctype="multipart/form-data" id="addRoomForm">
+                        <input type="hidden" name="action" value="add">
                         <div class="row mb-3">
                             <div class="col-md-6">
                                 <label class="form-label">Room Number</label>
-                                <input type="text" class="form-control" placeholder="e.g. 101" required>
+                                <input type="text" name="nomor_kamar" class="form-control" placeholder="e.g. 101" required>
                             </div>
                             <div class="col-md-6">
                                 <label class="form-label">Room Type</label>
-                                <select class="form-select" required>
+                                <select name="tipe_kamar" class="form-select" required>
                                     <option value="" disabled selected>Select type</option>
-                                    <option value="Standard">Standard</option>
-                                    <option value="Deluxe">Deluxe</option>
-                                    <option value="Suite">Suite</option>
-                                    <option value="Presidential">Presidential</option>
+                                    <option value="Deluxe Room">Deluxe Room</option>
+                                    <option value="Executive Suite">Executive Suite</option>
+                                    <option value="Presidential Room">Presidential Room</option>
                                 </select>
                             </div>
                         </div>
                         <div class="mb-3">
                             <label class="form-label">Price per Night (Rp)</label>
-                            <input type="number" class="form-control" placeholder="e.g. 500000" required>
+                            <input type="number" name="harga" class="form-control" placeholder="e.g. 500000" required>
                         </div>
                         <div class="mb-3">
                             <label class="form-label">Status</label>
-                            <select class="form-select" required>
+                            <select name="status" class="form-select" required>
                                 <option value="tersedia" selected>Tersedia</option>
                                 <option value="dipesan">Dipesan</option>
                             </select>
                         </div>
                         <div class="mb-3">
                             <label class="form-label">Room Photo</label>
-                            <input type="file" class="form-control" accept="image/*">
+                            <input type="file" name="foto" class="form-control" accept="image/*">
                             <div class="form-text text-muted" style="font-size: 0.8rem;">Max file size 2MB. Recommended resolution 800x600.</div>
                         </div>
                     </form>
                 </div>
                 <div class="modal-footer">
                     <button type="button" class="btn btn-light" data-bs-dismiss="modal" style="border-radius: 8px;">Cancel</button>
-                    <button type="button" class="btn btn-accent">Save Room</button>
+                    <button type="submit" form="addRoomForm" class="btn btn-accent">Save Room</button>
                 </div>
             </div>
         </div>
@@ -498,16 +559,21 @@
                     <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
                 </div>
                 <div class="modal-body">
-                    <form>
+                    <form action="kamar.php" method="POST" enctype="multipart/form-data" id="editRoomForm">
+                        <input type="hidden" name="action" value="edit">
+                        <input type="hidden" name="id_kamar" id="edit_id_kamar">
                         <div class="row mb-3">
                             <div class="col-md-6">
                                 <label class="form-label">Room Number</label>
-                                <input type="text" class="form-control" value="101" required>
+                                <input type="text" name="nomor_kamar" id="edit_nomor_kamar" class="form-control" required>
                             </div>
                             <div class="col-md-6">
                                 <label class="form-label">Room Type</label>
-                                <select class="form-select" required>
-                                    <option value="Standard" selected>Standard</option>
+                                <select name="tipe_kamar" id="edit_tipe_kamar" class="form-select" required>
+                                    <option value="Deluxe Room">Deluxe Room</option>
+                                    <option value="Executive Suite">Executive Suite</option>
+                                    <option value="Presidential Room">Presidential Room</option>
+                                    <option value="Standard">Standard</option>
                                     <option value="Deluxe">Deluxe</option>
                                     <option value="Suite">Suite</option>
                                     <option value="Presidential">Presidential</option>
@@ -516,28 +582,28 @@
                         </div>
                         <div class="mb-3">
                             <label class="form-label">Price per Night (Rp)</label>
-                            <input type="number" class="form-control" value="350000" required>
+                            <input type="number" name="harga" id="edit_harga" class="form-control" required>
                         </div>
                         <div class="mb-3">
                             <label class="form-label">Status</label>
-                            <select class="form-select" required>
-                                <option value="tersedia" selected>Tersedia</option>
+                            <select name="status" id="edit_status" class="form-select" required>
+                                <option value="tersedia">Tersedia</option>
                                 <option value="dipesan">Dipesan</option>
                             </select>
                         </div>
                         <div class="mb-3">
                             <label class="form-label">Update Photo</label>
-                            <input type="file" class="form-control" accept="image/*">
-                            <div class="mt-2">
+                            <input type="file" name="foto" class="form-control" accept="image/*">
+                            <div class="mt-2" id="edit_photo_preview_container" style="display:none;">
                                 <span class="d-block text-muted" style="font-size: 0.8rem; margin-bottom: 5px;">Current Photo:</span>
-                                <img src="https://images.unsplash.com/photo-1611892440504-42a792e24d32?auto=format&fit=crop&w=150&q=80" alt="Current Photo" class="room-img-thumb" style="width: 120px; height: 80px;">
+                                <img src="" id="edit_photo_preview" alt="Current Photo" class="room-img-thumb" style="width: 120px; height: 80px; object-fit: cover;">
                             </div>
                         </div>
                     </form>
                 </div>
                 <div class="modal-footer">
                     <button type="button" class="btn btn-light" data-bs-dismiss="modal" style="border-radius: 8px;">Cancel</button>
-                    <button type="button" class="btn btn-accent">Update Room</button>
+                    <button type="submit" form="editRoomForm" class="btn btn-accent">Update Room</button>
                 </div>
             </div>
         </div>
@@ -547,14 +613,49 @@
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
     
     <script>
-        // Simple script to handle delete button confirmation
-        document.querySelectorAll('.btn-delete').forEach(button => {
-            button.addEventListener('click', function() {
-                if(confirm('Are you sure you want to delete this room? This action cannot be undone.')) {
-                    // Logic to delete item would go here
-                    alert('Room deleted (demo)!');
-                }
-            });
+        // Populate edit modal
+        document.addEventListener('DOMContentLoaded', function() {
+            var editModal = document.getElementById('editRoomModal');
+            if(editModal) {
+                editModal.addEventListener('show.bs.modal', function (event) {
+                    var button = event.relatedTarget;
+                    var id = button.getAttribute('data-id');
+                    var nomor = button.getAttribute('data-nomor');
+                    var tipe = button.getAttribute('data-tipe');
+                    var harga = button.getAttribute('data-harga');
+                    var status = button.getAttribute('data-status');
+                    var foto = button.getAttribute('data-foto');
+
+                    document.getElementById('edit_id_kamar').value = id;
+                    document.getElementById('edit_nomor_kamar').value = nomor;
+                    
+                    var typeSelect = document.getElementById('edit_tipe_kamar');
+                    // Add option if not exists
+                    var exists = false;
+                    for(var i = 0; i < typeSelect.options.length; i++) {
+                        if(typeSelect.options[i].value === tipe) { exists = true; break; }
+                    }
+                    if(!exists && tipe) {
+                        var opt = document.createElement('option');
+                        opt.value = tipe;
+                        opt.innerHTML = tipe;
+                        typeSelect.appendChild(opt);
+                    }
+                    typeSelect.value = tipe;
+                    
+                    document.getElementById('edit_harga').value = harga;
+                    document.getElementById('edit_status').value = status;
+
+                    var previewContainer = document.getElementById('edit_photo_preview_container');
+                    var previewImg = document.getElementById('edit_photo_preview');
+                    if (foto) {
+                        previewImg.src = "../assets/images/" + foto;
+                        previewContainer.style.display = 'block';
+                    } else {
+                        previewContainer.style.display = 'none';
+                    }
+                });
+            }
         });
     </script>
 </body>
