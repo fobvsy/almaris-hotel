@@ -1,3 +1,67 @@
+<?php
+session_start();
+require_once '../config/koneksi.php';
+
+// Auth Guard
+if (!isset($_SESSION['user_id']) || $_SESSION['role'] !== 'admin') {
+    header("Location: ../login.php");
+    exit;
+}
+
+$adminName = $_SESSION['nama'] ?? 'Admin';
+$adminId = $_SESSION['user_id'];
+$queryAdmin = $koneksi->query("SELECT email FROM users WHERE id_user = $adminId");
+$adminEmail = $queryAdmin->fetch_assoc()['email'] ?? 'admin@almaris.com';
+
+// Handle Delete
+if (isset($_GET['delete'])) {
+    $id_delete = (int)$_GET['delete'];
+    if ($id_delete === (int)$_SESSION['user_id']) {
+        $_SESSION['alert'] = "Swal.fire('Error!', 'You cannot delete your own account.', 'error');";
+    } else {
+        $stmt = $koneksi->prepare("DELETE FROM users WHERE id_user = ?");
+        $stmt->bind_param("i", $id_delete);
+        if ($stmt->execute()) {
+            $_SESSION['alert'] = "Swal.fire('Deleted!', 'The user has been deleted successfully.', 'success');";
+        } else {
+            $_SESSION['alert'] = "Swal.fire('Error!', 'Failed to delete user.', 'error');";
+        }
+        $stmt->close();
+    }
+    header("Location: user.php");
+    exit;
+}
+
+// Handle Change Password
+if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['action'] === 'change_password') {
+    $id_user = (int)$_POST['id_user'];
+    $new_password = $_POST['new_password'];
+    
+    // Hash password
+    $hashed_password = password_hash($new_password, PASSWORD_DEFAULT);
+    
+    $stmt = $koneksi->prepare("UPDATE users SET password = ? WHERE id_user = ?");
+    $stmt->bind_param("si", $hashed_password, $id_user);
+    if ($stmt->execute()) {
+        $_SESSION['alert'] = "Swal.fire('Success!', 'Password has been updated successfully.', 'success');";
+    } else {
+        $_SESSION['alert'] = "Swal.fire('Error!', 'Failed to update password.', 'error');";
+    }
+    $stmt->close();
+    header("Location: user.php");
+    exit;
+}
+
+$alert = '';
+if (isset($_SESSION['alert'])) {
+    $alert = $_SESSION['alert'];
+    unset($_SESSION['alert']);
+}
+
+// Fetch all users
+$queryUsers = $koneksi->query("SELECT * FROM users ORDER BY created_at DESC");
+$users = $queryUsers->fetch_all(MYSQLI_ASSOC);
+?>
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -15,6 +79,9 @@
     
     <!-- FontAwesome -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    
+    <!-- SweetAlert2 -->
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
 
     <style>
         :root {
@@ -167,6 +234,8 @@
             transition: 0.2s;
         }
         
+        .btn-edit { background-color: #DBEAFE; color: #1E40AF; }
+        .btn-edit:hover { background-color: #BFDBFE; }
         .btn-delete { background-color: #FEE2E2; color: #991B1B; }
         .btn-delete:hover { background-color: #FECACA; }
 
@@ -235,11 +304,11 @@
             </div>
             <div class="user-profile d-flex align-items-center">
                 <div class="text-end me-3">
-                    <div class="fw-bold" style="font-size: 0.9rem; color: var(--primary);">Admin User</div>
-                    <div class="text-muted" style="font-size: 0.75rem;">admin@almaris.com</div>
+                    <div class="fw-bold" style="font-size: 0.9rem; color: var(--primary);"><?= htmlspecialchars($adminName) ?></div>
+                    <div class="text-muted" style="font-size: 0.75rem;"><?= htmlspecialchars($adminEmail) ?></div>
                 </div>
                 <div class="user-avatar" style="margin-right: 0; width: 40px; height: 40px;">
-                    A
+                    <?= strtoupper(substr($adminName, 0, 1)) ?>
                 </div>
             </div>
         </div>
@@ -266,77 +335,46 @@
                         </tr>
                     </thead>
                     <tbody>
-                        <!-- Dummy Data Row 1 -->
-                        <tr>
-                            <td><span class="text-muted fw-medium">#USR-001</span></td>
-                            <td>
-                                <div class="d-flex align-items-center">
-                                    <div class="user-avatar" style="background-color: #DBEAFE; color: #1E40AF;">J</div>
-                                    <span class="fw-bold">John Doe</span>
-                                </div>
-                            </td>
-                            <td>john.doe@example.com</td>
-                            <td><span class="role-badge role-user">User</span></td>
-                            <td class="text-center">
-                                <button class="action-btn btn-delete" title="Delete User">
-                                    <i class="fas fa-trash"></i>
-                                </button>
-                            </td>
-                        </tr>
-                        
-                        <!-- Dummy Data Row 2 -->
-                        <tr>
-                            <td><span class="text-muted fw-medium">#USR-002</span></td>
-                            <td>
-                                <div class="d-flex align-items-center">
-                                    <div class="user-avatar" style="background-color: #FEE2E2; color: #991B1B;">S</div>
-                                    <span class="fw-bold">Sarah Wilson</span>
-                                </div>
-                            </td>
-                            <td>sarah.wilson@example.com</td>
-                            <td><span class="role-badge role-user">User</span></td>
-                            <td class="text-center">
-                                <button class="action-btn btn-delete" title="Delete User">
-                                    <i class="fas fa-trash"></i>
-                                </button>
-                            </td>
-                        </tr>
-
-                        <!-- Dummy Data Row 3 -->
-                        <tr>
-                            <td><span class="text-muted fw-medium">#USR-003</span></td>
-                            <td>
-                                <div class="d-flex align-items-center">
-                                    <div class="user-avatar" style="background-color: var(--primary); color: var(--accent);">A</div>
-                                    <span class="fw-bold text-primary">Admin System</span>
-                                </div>
-                            </td>
-                            <td>admin@almaris.com</td>
-                            <td><span class="role-badge role-admin">Admin</span></td>
-                            <td class="text-center">
-                                <button class="action-btn btn-delete" title="Delete User" disabled style="opacity: 0.5; cursor: not-allowed;">
-                                    <i class="fas fa-trash"></i>
-                                </button>
-                            </td>
-                        </tr>
-
-                        <!-- Dummy Data Row 4 -->
-                        <tr>
-                            <td><span class="text-muted fw-medium">#USR-004</span></td>
-                            <td>
-                                <div class="d-flex align-items-center">
-                                    <div class="user-avatar" style="background-color: #D1FAE5; color: #065F46;">M</div>
-                                    <span class="fw-bold">Michael Brown</span>
-                                </div>
-                            </td>
-                            <td>michael.b@example.com</td>
-                            <td><span class="role-badge role-user">User</span></td>
-                            <td class="text-center">
-                                <button class="action-btn btn-delete" title="Delete User">
-                                    <i class="fas fa-trash"></i>
-                                </button>
-                            </td>
-                        </tr>
+                        <?php if (empty($users)): ?>
+                            <tr>
+                                <td colspan="5" class="text-center py-4 text-muted">No users found.</td>
+                            </tr>
+                        <?php else: ?>
+                            <?php foreach ($users as $u): ?>
+                                <?php
+                                    $firstLetter = strtoupper(substr($u['nama'], 0, 1));
+                                    $isAdmin = ($u['role'] === 'admin');
+                                    $avatarStyle = $isAdmin 
+                                        ? "background-color: var(--primary); color: var(--accent);" 
+                                        : "background-color: #DBEAFE; color: #1E40AF;";
+                                ?>
+                                <tr>
+                                    <td><span class="text-muted fw-medium">#USR-<?= htmlspecialchars($u['id_user']) ?></span></td>
+                                    <td>
+                                        <div class="d-flex align-items-center">
+                                            <div class="user-avatar" style="<?= $avatarStyle ?>"><?= $firstLetter ?></div>
+                                            <span class="fw-bold <?= $isAdmin ? 'text-primary' : '' ?>"><?= htmlspecialchars($u['nama']) ?></span>
+                                        </div>
+                                    </td>
+                                    <td><?= htmlspecialchars($u['email']) ?></td>
+                                    <td><span class="role-badge <?= $isAdmin ? 'role-admin' : 'role-user' ?>"><?= ucfirst(htmlspecialchars($u['role'])) ?></span></td>
+                                    <td class="text-center">
+                                        <?php if ($isAdmin): ?>
+                                            <button class="action-btn btn-delete" title="Delete User" disabled style="opacity: 0.5; cursor: not-allowed;">
+                                                <i class="fas fa-trash"></i>
+                                            </button>
+                                        <?php else: ?>
+                                            <button class="action-btn btn-edit me-1" onclick="openPasswordModal(<?= $u['id_user'] ?>, '<?= htmlspecialchars(addslashes($u['nama'])) ?>')" title="Change Password">
+                                                <i class="fas fa-key"></i>
+                                            </button>
+                                            <button class="action-btn btn-delete" onclick="confirmDelete(<?= $u['id_user'] ?>)" title="Delete User">
+                                                <i class="fas fa-trash"></i>
+                                            </button>
+                                        <?php endif; ?>
+                                    </td>
+                                </tr>
+                            <?php endforeach; ?>
+                        <?php endif; ?>
                     </tbody>
                 </table>
             </div>
@@ -357,18 +395,65 @@
         </div>
     </main>
 
+    <!-- Change Password Modal -->
+    <div class="modal fade" id="changePasswordModal" tabindex="-1" aria-labelledby="changePasswordModalLabel" aria-hidden="true">
+        <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-content" style="border-radius: 16px; border: none;">
+                <div class="modal-header" style="border-bottom: 1px solid #E5E7EB; padding: 20px 24px;">
+                    <h5 class="modal-title" id="changePasswordModalLabel" style="color: var(--primary); font-weight: 600;">Change Password</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body" style="padding: 24px;">
+                    <p class="mb-3 text-muted" style="font-size: 0.9rem;">Change password for user: <strong id="modalUserName" class="text-primary"></strong></p>
+                    <form action="user.php" method="POST" id="changePasswordForm">
+                        <input type="hidden" name="action" value="change_password">
+                        <input type="hidden" name="id_user" id="pwd_id_user">
+                        
+                        <div class="mb-3">
+                            <label class="form-label" style="font-weight: 500; color: var(--primary); font-size: 0.9rem;">New Password</label>
+                            <input type="password" name="new_password" class="form-control" style="border-radius: 8px; padding: 12px 16px; border: 1px solid #D1D5DB;" required minlength="6" placeholder="Enter new password">
+                        </div>
+                    </form>
+                </div>
+                <div class="modal-footer" style="border-top: 1px solid #E5E7EB; padding: 16px 24px;">
+                    <button type="button" class="btn btn-light" data-bs-dismiss="modal" style="border-radius: 8px;">Cancel</button>
+                    <button type="submit" form="changePasswordForm" class="btn" style="background-color: var(--accent); color: var(--primary); font-weight: 500; border-radius: 8px; padding: 8px 20px;">Save Password</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
     <!-- Bootstrap JS -->
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
     
     <script>
-        // Simple script to handle delete button confirmation
-        document.querySelectorAll('.btn-delete:not([disabled])').forEach(button => {
-            button.addEventListener('click', function() {
-                if(confirm('Are you sure you want to delete this user? This action cannot be undone.')) {
-                    // Logic to delete item would go here
-                    alert('User deleted (demo)!');
+        function confirmDelete(id) {
+            Swal.fire({
+                title: 'Are you sure?',
+                text: "You won't be able to revert this! This action will remove the user permanently.",
+                icon: 'warning',
+                showCancelButton: true,
+                confirmButtonColor: '#991B1B',
+                cancelButtonColor: '#6B7280',
+                confirmButtonText: 'Yes, delete it!'
+            }).then((result) => {
+                if (result.isConfirmed) {
+                    window.location.href = 'user.php?delete=' + id;
                 }
-            });
+            })
+        }
+
+        function openPasswordModal(id, name) {
+            document.getElementById('pwd_id_user').value = id;
+            document.getElementById('modalUserName').innerText = name;
+            var modal = new bootstrap.Modal(document.getElementById('changePasswordModal'));
+            modal.show();
+        }
+
+        document.addEventListener('DOMContentLoaded', function() {
+            <?php if (!empty($alert)): ?>
+                <?= $alert ?>
+            <?php endif; ?>
         });
     </script>
 </body>

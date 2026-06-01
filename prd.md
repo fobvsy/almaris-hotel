@@ -200,6 +200,7 @@ Admin dapat:
 Admin dapat:
 - melihat data user
 - menghapus user
+- mengubah password user
 
 ### Reports
 Admin dapat:
