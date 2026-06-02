@@ -1,4 +1,35 @@
-<?php session_start(); ?>
+<?php 
+session_start();
+require_once 'config/koneksi.php';
+
+// Handle filter and sort
+$typeFilter = $_GET['type'] ?? '';
+$sortOption = $_GET['sort'] ?? 'recommended';
+
+$whereClause = "";
+$orderBy = "GROUP BY tipe_kamar";
+
+if (!empty($typeFilter)) {
+    $typeEscaped = $koneksi->real_escape_string($typeFilter);
+    $whereClause = "WHERE tipe_kamar LIKE '%$typeEscaped%'";
+}
+
+if ($sortOption === 'price_low') {
+    $orderBy = "ORDER BY harga ASC";
+} elseif ($sortOption === 'price_high') {
+    $orderBy = "ORDER BY harga DESC";
+}
+
+$queryKamar = $koneksi->query("SELECT * FROM kamar $whereClause $orderBy");
+$rooms = $queryKamar->fetch_all(MYSQLI_ASSOC);
+
+// SweetAlert Session
+$alert = '';
+if (isset($_SESSION['alert'])) {
+    $alert = $_SESSION['alert'];
+    unset($_SESSION['alert']);
+}
+?>
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -15,6 +46,8 @@
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.1/font/bootstrap-icons.css">
     <!-- AOS Animation -->
     <link href="https://unpkg.com/aos@2.3.1/dist/aos.css" rel="stylesheet">
+    <!-- SweetAlert2 -->
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
     <!-- Custom Styles -->
     <link href="assets/css/styles.css" rel="stylesheet">
     <style>
@@ -119,17 +152,17 @@
     <!-- Filter Section -->
     <div class="container mb-5 mt-n4 position-relative" style="z-index: 10;" data-aos="fade-up" data-aos-delay="200">
         <div class="glassmorphism bg-white p-4 shadow-sm border rounded-4">
-            <form class="row g-3 align-items-end">
+            <form action="kamar.php" method="GET" class="row g-3 align-items-end">
                 <div class="col-md-4">
                     <label class="form-label text-navy fw-semibold fs-7 text-uppercase tracking-wide">Room Type</label>
                     <div class="input-container">
                         <i class="bi bi-door-open"></i>
-                        <select class="form-select custom-input border-0 bg-light-gray w-100">
+                        <select name="type" class="form-select custom-input border-0 bg-light-gray w-100">
                             <option value="">All Types</option>
-                            <option value="standard">Standard Room</option>
-                            <option value="deluxe">Deluxe Room</option>
-                            <option value="suite">Executive Suite</option>
-                            <option value="presidential">Presidential Suite</option>
+                            <option value="Standard" <?= stripos($typeFilter, 'Standard') !== false ? 'selected' : '' ?>>Standard Room</option>
+                            <option value="Deluxe" <?= stripos($typeFilter, 'Deluxe') !== false ? 'selected' : '' ?>>Deluxe Room</option>
+                            <option value="Suite" <?= stripos($typeFilter, 'Suite') !== false ? 'selected' : '' ?>>Suite / Executive</option>
+                            <option value="Presidential" <?= stripos($typeFilter, 'Presidential') !== false ? 'selected' : '' ?>>Presidential Suite</option>
                         </select>
                     </div>
                 </div>
@@ -137,15 +170,15 @@
                     <label class="form-label text-navy fw-semibold fs-7 text-uppercase tracking-wide">Sort By</label>
                     <div class="input-container">
                         <i class="bi bi-sort-down"></i>
-                        <select class="form-select custom-input border-0 bg-light-gray w-100">
-                            <option value="recommended">Recommended</option>
-                            <option value="price_low">Price: Low to High</option>
-                            <option value="price_high">Price: High to Low</option>
+                        <select name="sort" class="form-select custom-input border-0 bg-light-gray w-100">
+                            <option value="recommended" <?= $sortOption === 'recommended' ? 'selected' : '' ?>>Recommended</option>
+                            <option value="price_low" <?= $sortOption === 'price_low' ? 'selected' : '' ?>>Price: Low to High</option>
+                            <option value="price_high" <?= $sortOption === 'price_high' ? 'selected' : '' ?>>Price: High to Low</option>
                         </select>
                     </div>
                 </div>
                 <div class="col-md-4">
-                    <button type="button" class="btn btn-navy w-100 fw-bold text-white shadow-soft transition-transform" style="background-color: var(--color-navy); height: 50px;">
+                    <button type="submit" class="btn btn-navy w-100 fw-bold text-white shadow-soft transition-transform" style="background-color: var(--color-navy); height: 50px;">
                         <i class="bi bi-funnel me-2"></i>Filter Rooms
                     </button>
                 </div>
@@ -158,178 +191,67 @@
         <div class="container">
             <div class="row g-4">
                 
-                <!-- Room 1 -->
-                <div class="col-lg-4 col-md-6" data-aos="fade-up" data-aos-delay="100">
-                    <div class="room-card">
-                        <div class="room-img-wrapper">
-                            <img src="https://images.unsplash.com/photo-1611892440504-42a792e24d32?ixlib=rb-4.0.3&auto=format&fit=crop&w=800&q=80" alt="Deluxe Ocean View">
-                            <div class="room-price">
-                                <span class="fs-4 fw-bold">Rp 1.5M</span> / night
+                <?php if (empty($rooms)): ?>
+                    <div class="col-12 text-center py-5">
+                        <i class="bi bi-journal-x fs-1 text-muted mb-3 d-block"></i>
+                        <h4 class="text-navy fw-bold">No Rooms Found</h4>
+                        <p class="text-muted">We couldn't find any rooms matching your criteria. Try adjusting your filters.</p>
+                        <a href="kamar.php" class="btn btn-outline-navy mt-2" style="border: 2px solid var(--color-navy); color: var(--color-navy); border-radius: 8px; font-weight: 500; padding: 10px 24px; text-decoration: none;">Clear Filters</a>
+                    </div>
+                <?php else: ?>
+                    <?php 
+                    $delay = 100;
+                    foreach ($rooms as $room): 
+                        $statusBadgeClass = ($room['status'] === 'tersedia') ? 'bg-success' : 'bg-danger';
+                        $statusLabel = ucfirst($room['status']);
+                        
+                        // Fake amenities based on room type since the DB doesn't have them
+                        $tipe = strtolower($room['tipe_kamar']);
+                        $size = "32 sqm"; $guests = "2 Guests"; $extra = "Free Wifi";
+                        if (strpos($tipe, 'deluxe') !== false) { $size = "45 sqm"; }
+                        if (strpos($tipe, 'suite') !== false) { $size = "65 sqm"; $guests = "3 Guests"; $extra = "Breakfast Included"; }
+                        if (strpos($tipe, 'presidential') !== false) { $size = "120 sqm"; $guests = "4 Guests"; $extra = "VIP Access"; }
+                        
+                        $fotoSrc = (!empty($room['foto']) && file_exists('assets/images/' . $room['foto'])) 
+                                   ? 'assets/images/' . $room['foto'] 
+                                   : 'https://images.unsplash.com/photo-1578683010236-d716f9a3f461?auto=format&fit=crop&w=800&q=80';
+                    ?>
+                    <div class="col-lg-4 col-md-6" data-aos="fade-up" data-aos-delay="<?= $delay ?>">
+                        <div class="room-card h-100 d-flex flex-column" style="background: #fff; border-radius: 16px; overflow: hidden; box-shadow: 0 4px 20px rgba(0,0,0,0.05);">
+                            <div class="room-img-wrapper position-relative" style="height: 250px; overflow: hidden;">
+                                <img src="<?= $fotoSrc ?>" alt="<?= htmlspecialchars($room['tipe_kamar']) ?>" style="width: 100%; height: 100%; object-fit: cover; transition: transform 0.5s;">
+                                <div class="position-absolute bottom-0 end-0 m-3 p-2 text-white" style="background: rgba(15, 23, 42, 0.85); backdrop-filter: blur(5px); border-radius: 8px;">
+                                    <span class="fs-4 fw-bold">Rp <?= number_format($room['harga'], 0, ',', '.') ?></span> / night
+                                </div>
+                                <div class="position-absolute top-0 start-0 m-3">
+                                    <span class="badge <?= $statusBadgeClass ?> px-3 py-2 rounded-pill shadow-sm" style="font-family: var(--font-body); font-weight: 500;"><?= $statusLabel ?></span>
+                                </div>
                             </div>
-                            <div class="position-absolute top-0 start-0 m-3">
-                                <span class="badge bg-success px-3 py-2 rounded-pill shadow-sm" style="font-family: var(--font-body); font-weight: 500;">Tersedia</span>
-                            </div>
-                        </div>
-                        <div class="room-content">
-                            <h3 class="h4 fw-bold text-navy mb-3">Deluxe Ocean View</h3>
-                            <div class="room-amenities d-flex flex-wrap gap-3 mb-4 text-muted fs-7">
-                                <span><i class="bi bi-arrows-fullscreen text-gold me-1"></i> 45 sqm</span>
-                                <span><i class="bi bi-people text-gold me-1"></i> 2 Guests</span>
-                                <span><i class="bi bi-wifi text-gold me-1"></i> Free Wifi</span>
-                                <span><i class="bi bi-tv text-gold me-1"></i> Smart TV</span>
-                            </div>
-                            <p class="text-muted mb-4 line-clamp-3">Elegant and spacious room with stunning ocean views and premium amenities for a relaxing stay.</p>
-                            <div class="d-flex gap-2">
-                                <a href="detail_kamar.php?id=1" class="btn btn-outline-navy flex-grow-1">Detail</a>
-                                <a href="booking.php?id=1" class="btn btn-gold flex-grow-1 shadow-gold">Book Now</a>
+                            <div class="room-content p-4 d-flex flex-column flex-grow-1">
+                                <h3 class="h4 fw-bold text-navy mb-3"><?= htmlspecialchars($room['tipe_kamar']) ?> <span class="fs-6 text-muted fw-normal">(No. <?= htmlspecialchars($room['nomor_kamar']) ?>)</span></h3>
+                                <div class="room-amenities d-flex flex-wrap gap-3 mb-4 text-muted fs-7">
+                                    <span><i class="bi bi-arrows-fullscreen text-gold me-1"></i> <?= $size ?></span>
+                                    <span><i class="bi bi-people text-gold me-1"></i> <?= $guests ?></span>
+                                    <span><i class="bi bi-star text-gold me-1"></i> <?= $extra ?></span>
+                                </div>
+                                <p class="text-muted mb-4 line-clamp-3">Experience ultimate comfort in our <?= htmlspecialchars($room['tipe_kamar']) ?>. Carefully designed to provide a relaxing and memorable stay.</p>
+                                <div class="d-flex gap-2 mt-auto">
+                                    <a href="detail_kamar.php?id=<?= $room['id_kamar'] ?>" class="btn btn-outline-navy flex-grow-1" style="border: 2px solid var(--color-navy); color: var(--color-navy); border-radius: 8px; font-weight: 600;">Detail</a>
+                                    <?php if ($room['status'] === 'tersedia'): ?>
+                                        <a href="booking.php?id=<?= $room['id_kamar'] ?>" class="btn btn-gold flex-grow-1 shadow-gold" style="border-radius: 8px; font-weight: 600;">Book Now</a>
+                                    <?php else: ?>
+                                        <button class="btn btn-secondary flex-grow-1 border-0" disabled style="background-color: #CBD5E1; color: #64748B; border-radius: 8px; font-weight: 600;">Unavailable</button>
+                                    <?php endif; ?>
+                                </div>
                             </div>
                         </div>
                     </div>
-                </div>
-
-                <!-- Room 2 -->
-                <div class="col-lg-4 col-md-6" data-aos="fade-up" data-aos-delay="200">
-                    <div class="room-card">
-                        <div class="room-img-wrapper">
-                            <img src="https://images.unsplash.com/photo-1590490360182-c33d57733427?ixlib=rb-4.0.3&auto=format&fit=crop&w=800&q=80" alt="Executive Suite">
-                            <div class="room-price">
-                                <span class="fs-4 fw-bold">Rp 2.8M</span> / night
-                            </div>
-                            <div class="position-absolute top-0 start-0 m-3">
-                                <span class="badge bg-danger px-3 py-2 rounded-pill shadow-sm" style="font-family: var(--font-body); font-weight: 500;">Dipesan</span>
-                            </div>
-                        </div>
-                        <div class="room-content">
-                            <h3 class="h4 fw-bold text-navy mb-3">Executive Suite</h3>
-                            <div class="room-amenities d-flex flex-wrap gap-3 mb-4 text-muted fs-7">
-                                <span><i class="bi bi-arrows-fullscreen text-gold me-1"></i> 65 sqm</span>
-                                <span><i class="bi bi-people text-gold me-1"></i> 3 Guests</span>
-                                <span><i class="bi bi-cup-hot text-gold me-1"></i> Breakfast</span>
-                                <span><i class="bi bi-safe text-gold me-1"></i> Safe</span>
-                            </div>
-                            <p class="text-muted mb-4 line-clamp-3">A luxurious suite featuring a separate living area, panoramic city views, and exclusive lounge access.</p>
-                            <div class="d-flex gap-2">
-                                <a href="detail_kamar.php?id=2" class="btn btn-outline-navy flex-grow-1">Detail</a>
-                                <button class="btn btn-secondary flex-grow-1 border-0" disabled style="background-color: #CBD5E1; color: #64748B;">Unavailable</button>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-
-                <!-- Room 3 -->
-                <div class="col-lg-4 col-md-6" data-aos="fade-up" data-aos-delay="300">
-                    <div class="room-card">
-                        <div class="room-img-wrapper">
-                            <img src="https://images.unsplash.com/photo-1582719508461-905c673771fd?ixlib=rb-4.0.3&auto=format&fit=crop&w=800&q=80" alt="Presidential Suite">
-                            <div class="room-price">
-                                <span class="fs-4 fw-bold">Rp 5.5M</span> / night
-                            </div>
-                            <div class="position-absolute top-0 start-0 m-3">
-                                <span class="badge bg-success px-3 py-2 rounded-pill shadow-sm" style="font-family: var(--font-body); font-weight: 500;">Tersedia</span>
-                            </div>
-                        </div>
-                        <div class="room-content">
-                            <h3 class="h4 fw-bold text-navy mb-3">Presidential Suite</h3>
-                            <div class="room-amenities d-flex flex-wrap gap-3 mb-4 text-muted fs-7">
-                                <span><i class="bi bi-arrows-fullscreen text-gold me-1"></i> 120 sqm</span>
-                                <span><i class="bi bi-people text-gold me-1"></i> 4 Guests</span>
-                                <span><i class="bi bi-star text-gold me-1"></i> VIP</span>
-                                <span><i class="bi bi-water text-gold me-1"></i> Jacuzzi</span>
-                            </div>
-                            <p class="text-muted mb-4 line-clamp-3">The pinnacle of luxury. Features a private jacuzzi, dedicated butler, and breathtaking 360-degree views.</p>
-                            <div class="d-flex gap-2">
-                                <a href="detail_kamar.php?id=3" class="btn btn-outline-navy flex-grow-1">Detail</a>
-                                <a href="booking.php?id=3" class="btn btn-gold flex-grow-1 shadow-gold">Book Now</a>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-
-                <!-- Room 4 -->
-                <div class="col-lg-4 col-md-6" data-aos="fade-up" data-aos-delay="100">
-                    <div class="room-card">
-                        <div class="room-img-wrapper">
-                            <img src="https://images.unsplash.com/photo-1578683010236-d716f9a3f461?ixlib=rb-4.0.3&auto=format&fit=crop&w=800&q=80" alt="Standard City View">
-                            <div class="room-price">
-                                <span class="fs-4 fw-bold">Rp 800K</span> / night
-                            </div>
-                            <div class="position-absolute top-0 start-0 m-3">
-                                <span class="badge bg-success px-3 py-2 rounded-pill shadow-sm" style="font-family: var(--font-body); font-weight: 500;">Tersedia</span>
-                            </div>
-                        </div>
-                        <div class="room-content">
-                            <h3 class="h4 fw-bold text-navy mb-3">Standard City View</h3>
-                            <div class="room-amenities d-flex flex-wrap gap-3 mb-4 text-muted fs-7">
-                                <span><i class="bi bi-arrows-fullscreen text-gold me-1"></i> 32 sqm</span>
-                                <span><i class="bi bi-people text-gold me-1"></i> 2 Guests</span>
-                                <span><i class="bi bi-wifi text-gold me-1"></i> Free Wifi</span>
-                            </div>
-                            <p class="text-muted mb-4 line-clamp-3">Comfortable and cozy room with beautiful city views, perfect for solo travelers or couples.</p>
-                            <div class="d-flex gap-2">
-                                <a href="detail_kamar.php?id=4" class="btn btn-outline-navy flex-grow-1">Detail</a>
-                                <a href="booking.php?id=4" class="btn btn-gold flex-grow-1 shadow-gold">Book Now</a>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-
-                <!-- Room 5 -->
-                <div class="col-lg-4 col-md-6" data-aos="fade-up" data-aos-delay="200">
-                    <div class="room-card">
-                        <div class="room-img-wrapper">
-                            <img src="https://images.unsplash.com/photo-1631049307264-da0ec9d70304?ixlib=rb-4.0.3&auto=format&fit=crop&w=800&q=80" alt="Family Suite">
-                            <div class="room-price">
-                                <span class="fs-4 fw-bold">Rp 3.5M</span> / night
-                            </div>
-                            <div class="position-absolute top-0 start-0 m-3">
-                                <span class="badge bg-success px-3 py-2 rounded-pill shadow-sm" style="font-family: var(--font-body); font-weight: 500;">Tersedia</span>
-                            </div>
-                        </div>
-                        <div class="room-content">
-                            <h3 class="h4 fw-bold text-navy mb-3">Family Suite</h3>
-                            <div class="room-amenities d-flex flex-wrap gap-3 mb-4 text-muted fs-7">
-                                <span><i class="bi bi-arrows-fullscreen text-gold me-1"></i> 85 sqm</span>
-                                <span><i class="bi bi-people text-gold me-1"></i> 5 Guests</span>
-                                <span><i class="bi bi-tv text-gold me-1"></i> 2 Smart TVs</span>
-                                <span><i class="bi bi-cup-hot text-gold me-1"></i> Kitchenette</span>
-                            </div>
-                            <p class="text-muted mb-4 line-clamp-3">Spacious family suite featuring multiple bedrooms, a living area, and a mini kitchenette.</p>
-                            <div class="d-flex gap-2">
-                                <a href="detail_kamar.php?id=5" class="btn btn-outline-navy flex-grow-1">Detail</a>
-                                <a href="booking.php?id=5" class="btn btn-gold flex-grow-1 shadow-gold">Book Now</a>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-
-                <!-- Room 6 -->
-                <div class="col-lg-4 col-md-6" data-aos="fade-up" data-aos-delay="300">
-                    <div class="room-card">
-                        <div class="room-img-wrapper">
-                            <img src="https://images.unsplash.com/photo-1566665797739-1674de7a421a?ixlib=rb-4.0.3&auto=format&fit=crop&w=800&q=80" alt="Honeymoon Suite">
-                            <div class="room-price">
-                                <span class="fs-4 fw-bold">Rp 4.2M</span> / night
-                            </div>
-                            <div class="position-absolute top-0 start-0 m-3">
-                                <span class="badge bg-danger px-3 py-2 rounded-pill shadow-sm" style="font-family: var(--font-body); font-weight: 500;">Dipesan</span>
-                            </div>
-                        </div>
-                        <div class="room-content">
-                            <h3 class="h4 fw-bold text-navy mb-3">Honeymoon Suite</h3>
-                            <div class="room-amenities d-flex flex-wrap gap-3 mb-4 text-muted fs-7">
-                                <span><i class="bi bi-arrows-fullscreen text-gold me-1"></i> 75 sqm</span>
-                                <span><i class="bi bi-people text-gold me-1"></i> 2 Guests</span>
-                                <span><i class="bi bi-flower1 text-gold me-1"></i> Decor</span>
-                                <span><i class="bi bi-droplet text-gold me-1"></i> Bathtub</span>
-                            </div>
-                            <p class="text-muted mb-4 line-clamp-3">Romantic suite specially designed for couples, featuring a free-standing bathtub and romantic decorations.</p>
-                            <div class="d-flex gap-2">
-                                <a href="detail_kamar.php?id=6" class="btn btn-outline-navy flex-grow-1">Detail</a>
-                                <button class="btn btn-secondary flex-grow-1 border-0" disabled style="background-color: #CBD5E1; color: #64748B;">Unavailable</button>
-                            </div>
-                        </div>
-                    </div>
-                </div>
+                    <?php 
+                        $delay += 100;
+                        if ($delay > 300) $delay = 100;
+                    endforeach; 
+                    ?>
+                <?php endif; ?>
 
             </div>
             
@@ -404,5 +326,12 @@
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
     <script src="https://unpkg.com/aos@2.3.1/dist/aos.js"></script>
     <script src="assets/js/script.js"></script>
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            <?php if (!empty($alert)): ?>
+                <?= $alert ?>
+            <?php endif; ?>
+        });
+    </script>
 </body>
 </html>

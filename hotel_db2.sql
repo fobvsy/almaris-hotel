@@ -3,7 +3,7 @@
 -- https://www.phpmyadmin.net/
 --
 -- Host: 127.0.0.1
--- Waktu pembuatan: 01 Jun 2026 pada 12.03
+-- Waktu pembuatan: 02 Jun 2026 pada 13.58
 -- Versi server: 10.4.32-MariaDB
 -- Versi PHP: 8.2.12
 
@@ -42,9 +42,10 @@ CREATE TABLE `kamar` (
 --
 
 INSERT INTO `kamar` (`id_kamar`, `nomor_kamar`, `tipe_kamar`, `harga`, `status`, `foto`, `created_at`) VALUES
-(1, '101', 'Deluxe Room', 750000, 'tersedia', 'deluxe.jpg', '2026-05-28 05:50:42'),
-(2, '102', 'Executive Suite', 1250000, 'tersedia', 'executive.jpg', '2026-05-28 05:50:42'),
-(3, '103', 'Presidential Room', 2500000, 'tersedia', 'presidential.jpg', '2026-05-28 05:50:42');
+(5, '101', 'Standard', 500000, 'tersedia', '', '2026-06-02 04:11:03'),
+(7, '102', 'Standard', 500000, 'tersedia', '', '2026-06-02 05:54:01'),
+(8, '103', 'Standard', 500000, 'tersedia', '', '2026-06-02 05:54:15'),
+(9, '104', 'Deluxe', 800000, 'tersedia', '', '2026-06-02 05:54:59');
 
 -- --------------------------------------------------------
 
@@ -68,7 +69,8 @@ CREATE TABLE `reservasi` (
 --
 
 INSERT INTO `reservasi` (`id_reservasi`, `id_user`, `id_kamar`, `check_in`, `check_out`, `total_harga`, `status`, `created_at`) VALUES
-(1, 6, 3, '2026-06-01', '2026-06-02', 2500000, 'checkout', '2026-06-01 07:44:49');
+(2, 2, 5, '2026-06-02', '2026-06-05', 1500000, 'checkout', '2026-06-02 04:13:49'),
+(3, 2, 9, '2026-06-02', '2026-06-06', 3200000, 'checkout', '2026-06-02 05:56:31');
 
 -- --------------------------------------------------------
 
@@ -91,7 +93,7 @@ CREATE TABLE `users` (
 
 INSERT INTO `users` (`id_user`, `nama`, `email`, `password`, `role`, `created_at`) VALUES
 (1, 'Admin', 'admin@almaris.hotel', '$2y$10$PqrzejFbU3D5DG5Z5isGXe.Hjpeeo80oifK7kk7Qw8JTG.mTagpca', 'admin', '2026-06-01 07:34:08'),
-(6, 'Alex', 'alex@yahoo.id', '$2y$10$Rjx07n509OKFTeSdKc6Ii.L9m5WqX7fANv/oqTwTTPSHLze6MzAfC', 'user', '2026-06-01 08:35:11');
+(2, 'Alex', 'alex@yahoo.id', '$2y$10$yBdnAIAyBlwtyGJk9uVBz.3Cqq8VaO.QmG6ge1quXkX4pS73SC0Ma', 'user', '2026-06-01 08:35:11');
 
 --
 -- Indexes for dumped tables
@@ -127,13 +129,13 @@ ALTER TABLE `users`
 -- AUTO_INCREMENT untuk tabel `kamar`
 --
 ALTER TABLE `kamar`
-  MODIFY `id_kamar` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=4;
+  MODIFY `id_kamar` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=10;
 
 --
 -- AUTO_INCREMENT untuk tabel `reservasi`
 --
 ALTER TABLE `reservasi`
-  MODIFY `id_reservasi` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=2;
+  MODIFY `id_reservasi` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=4;
 
 --
 -- AUTO_INCREMENT untuk tabel `users`
