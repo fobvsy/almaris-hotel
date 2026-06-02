@@ -1,5 +1,6 @@
 <?php
 session_start();
+require_once '../config/koneksi.php';
 
 // Protect: only authenticated users may access this page
 if (!isset($_SESSION['user_id'])) {
@@ -15,6 +16,16 @@ if (isset($_SESSION['role']) && $_SESSION['role'] === 'admin') {
 
 $userName = htmlspecialchars($_SESSION['nama'] ?? 'User');
 $userInitials = strtoupper(mb_substr($userName, 0, 2));
+
+// Fetch user email from database
+$userId = $_SESSION['user_id'];
+$query = "SELECT email FROM users WHERE id_user = ?";
+$stmt = mysqli_prepare($koneksi, $query);
+mysqli_stmt_bind_param($stmt, "i", $userId);
+mysqli_stmt_execute($stmt);
+$result = mysqli_stmt_get_result($stmt);
+$userData = mysqli_fetch_assoc($result);
+$dbEmail = htmlspecialchars($userData['email'] ?? '');
 ?>
 <!DOCTYPE html>
 <html lang="en">
@@ -127,34 +138,18 @@ $userInitials = strtoupper(mb_substr($userName, 0, 2));
                 
                 <!-- Profile Info Sidebar -->
                 <div class="col-lg-4">
-                    <div class="dashboard-card text-center">
+                    <div class="dashboard-card text-center d-flex flex-column justify-content-center align-items-center">
                         <div class="user-avatar-large mx-auto mb-4"><?= $userInitials ?></div>
                         <h4 class="fw-bold text-navy mb-1"><?= $userName ?></h4>
-                        <p class="text-muted mb-4"><?= htmlspecialchars($_SESSION['email'] ?? '') ?></p>
-                        <hr class="text-muted">
-                        <div class="text-start mt-4">
-                            <p class="mb-2"><i class="bi bi-telephone text-gold me-2"></i> +62 812 3456 7890</p>
-                            <p class="mb-0"><i class="bi bi-geo-alt text-gold me-2"></i> Jakarta, Indonesia</p>
-                        </div>
-                        <button class="btn btn-outline-navy w-100 mt-4 py-2 fw-semibold" style="border: 1px solid var(--color-navy); color: var(--color-navy);">Edit Profile</button>
+                        <p class="text-muted mb-0"><?= $dbEmail ?></p>
                     </div>
                 </div>
 
                 <!-- Dashboard Stats & Actions -->
                 <div class="col-lg-8">
                     <div class="row g-4 mb-4">
-                        <!-- Total Reservations -->
-                        <div class="col-md-6">
-                            <div class="dashboard-card d-flex align-items-center">
-                                <div class="stat-icon icon-blue mb-0 me-4"><i class="bi bi-calendar-check"></i></div>
-                                <div>
-                                    <h2 class="fw-bold text-navy mb-0">12</h2>
-                                    <p class="text-muted mb-0">Total Reservations</p>
-                                </div>
-                            </div>
-                        </div>
                         <!-- Active Reservations -->
-                        <div class="col-md-6">
+                        <div class="col-12">
                             <div class="dashboard-card d-flex align-items-center" style="border: 1px solid var(--color-gold);">
                                 <div class="stat-icon icon-gold mb-0 me-4"><i class="bi bi-bell"></i></div>
                                 <div>
