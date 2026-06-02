@@ -309,4 +309,5 @@ http://localhost/hotel-app
 
 # 👨‍💻 Developer
 
-Indratama Faturrohim & Galuh Ayu Kanita With The Team: ChatGPT, Gemini, Claude
+## Indratama Faturrohim & Galuh Ayu Kanita With The Team
+### The Team: ChatGPT, Gemini, Claude, AntiGravity
