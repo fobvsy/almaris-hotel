@@ -528,9 +528,10 @@ $rooms = $queryKamar->fetch_all(MYSQLI_ASSOC);
                                 <label class="form-label">Room Type</label>
                                 <select name="tipe_kamar" class="form-select" required>
                                     <option value="" disabled selected>Select type</option>
-                                    <option value="Deluxe Room">Deluxe Room</option>
-                                    <option value="Executive Suite">Executive Suite</option>
-                                    <option value="Presidential Room">Presidential Room</option>
+                                    <option value="Standard">Standard</option>
+                                    <option value="Deluxe">Deluxe</option>
+                                    <option value="Suite">Suite</option>
+                                    <option value="Presidential">Presidential</option>
                                 </select>
                             </div>
                         </div>
@@ -580,9 +581,6 @@ $rooms = $queryKamar->fetch_all(MYSQLI_ASSOC);
                             <div class="col-md-6">
                                 <label class="form-label">Room Type</label>
                                 <select name="tipe_kamar" id="edit_tipe_kamar" class="form-select" required>
-                                    <option value="Deluxe Room">Deluxe Room</option>
-                                    <option value="Executive Suite">Executive Suite</option>
-                                    <option value="Presidential Room">Presidential Room</option>
                                     <option value="Standard">Standard</option>
                                     <option value="Deluxe">Deluxe</option>
                                     <option value="Suite">Suite</option>
