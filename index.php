@@ -1,4 +1,14 @@
-<?php session_start(); ?>
+<?php 
+session_start(); 
+require_once 'config/koneksi.php';
+
+// Fetch 3 featured rooms for index
+$queryFeatured = $koneksi->query("SELECT * FROM kamar GROUP BY tipe_kamar ASC LIMIT 3");
+$featuredRooms = [];
+if ($queryFeatured) {
+    $featuredRooms = $queryFeatured->fetch_all(MYSQLI_ASSOC);
+}
+?>
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -182,71 +192,53 @@
             </div>
 
             <div class="row g-4">
-                <!-- Room 1 -->
-                <div class="col-lg-4 col-md-6" data-aos="fade-up" data-aos-delay="100">
-                    <div class="room-card">
-                        <div class="room-img-wrapper">
-                            <img src="https://images.unsplash.com/photo-1611892440504-42a792e24d32?ixlib=rb-4.0.3&auto=format&fit=crop&w=800&q=80" alt="Deluxe Room">
-                            <div class="room-price">
-                                <span class="fs-4 fw-bold">Rp 1.5M</span> / night
+                <?php if (empty($featuredRooms)): ?>
+                    <div class="col-12 text-center text-muted">No featured rooms available.</div>
+                <?php else: ?>
+                    <?php 
+                    $delay = 100;
+                    foreach ($featuredRooms as $room): 
+                        $tipe = strtolower($room['tipe_kamar']);
+                        $size = "32 sqm"; $guests = "2 Guests"; $extra = "Free Wifi";
+                        $iconExtra = "bi-wifi";
+                        if (strpos($tipe, 'deluxe') !== false) { $size = "45 sqm"; }
+                        if (strpos($tipe, 'suite') !== false) { $size = "65 sqm"; $guests = "3 Guests"; $extra = "Breakfast"; $iconExtra = "bi-cup-hot"; }
+                        if (strpos($tipe, 'presidential') !== false) { $size = "120 sqm"; $guests = "4 Guests"; $extra = "VIP"; $iconExtra = "bi-star"; }
+                        
+                        $fotoSrc = (!empty($room['foto']) && file_exists('assets/images/' . $room['foto'])) 
+                                   ? 'assets/images/' . $room['foto'] 
+                                   : 'https://images.unsplash.com/photo-1578683010236-d716f9a3f461?auto=format&fit=crop&w=800&q=80';
+                        
+                        $priceFormat = $room['harga'] >= 1000000 
+                            ? rtrim(rtrim(number_format($room['harga'] / 1000000, 2, '.', ''), '0'), '.') . 'M' 
+                            : number_format($room['harga'], 0, ',', '.');
+                    ?>
+                    <!-- Room -->
+                    <div class="col-lg-4 col-md-6" data-aos="fade-up" data-aos-delay="<?= $delay ?>">
+                        <div class="room-card">
+                            <div class="room-img-wrapper">
+                                <img src="<?= htmlspecialchars($fotoSrc) ?>" alt="<?= htmlspecialchars($room['tipe_kamar']) ?>">
+                                <div class="room-price">
+                                    <span class="fs-4 fw-bold">Rp <?= $priceFormat ?></span> / night
+                                </div>
                             </div>
-                        </div>
-                        <div class="room-content">
-                            <h3 class="h4 fw-bold text-navy mb-3">Deluxe Ocean View</h3>
-                            <div class="room-amenities d-flex gap-3 mb-4 text-muted fs-7">
-                                <span><i class="bi bi-arrows-fullscreen text-gold me-1"></i> 45 sqm</span>
-                                <span><i class="bi bi-people text-gold me-1"></i> 2 Guests</span>
-                                <span><i class="bi bi-wifi text-gold me-1"></i> Free Wifi</span>
+                            <div class="room-content">
+                                <h3 class="h4 fw-bold text-navy mb-3"><?= htmlspecialchars($room['tipe_kamar']) ?></h3>
+                                <div class="room-amenities d-flex gap-3 mb-4 text-muted fs-7">
+                                    <span><i class="bi bi-arrows-fullscreen text-gold me-1"></i> <?= $size ?></span>
+                                    <span><i class="bi bi-people text-gold me-1"></i> <?= $guests ?></span>
+                                    <span><i class="bi <?= $iconExtra ?> text-gold me-1"></i> <?= $extra ?></span>
+                                </div>
+                                <p class="text-muted mb-4">Experience ultimate comfort in our <?= htmlspecialchars($room['tipe_kamar']) ?>. Carefully designed to provide a relaxing and memorable stay.</p>
+                                <a href="booking.php?id=<?= $room['id_kamar'] ?>" class="btn btn-outline-navy w-100">Book Now</a>
                             </div>
-                            <p class="text-muted mb-4">Elegant and spacious room with stunning ocean views and premium amenities for a relaxing stay.</p>
-                            <a href="booking.php" class="btn btn-outline-navy w-100">Book Now</a>
                         </div>
                     </div>
-                </div>
-
-                <!-- Room 2 -->
-                <div class="col-lg-4 col-md-6" data-aos="fade-up" data-aos-delay="200">
-                    <div class="room-card">
-                        <div class="room-img-wrapper">
-                            <img src="https://images.unsplash.com/photo-1590490360182-c33d57733427?ixlib=rb-4.0.3&auto=format&fit=crop&w=800&q=80" alt="Executive Suite">
-                            <div class="room-price">
-                                <span class="fs-4 fw-bold">Rp 2.8M</span> / night
-                            </div>
-                        </div>
-                        <div class="room-content">
-                            <h3 class="h4 fw-bold text-navy mb-3">Executive Suite</h3>
-                            <div class="room-amenities d-flex gap-3 mb-4 text-muted fs-7">
-                                <span><i class="bi bi-arrows-fullscreen text-gold me-1"></i> 65 sqm</span>
-                                <span><i class="bi bi-people text-gold me-1"></i> 3 Guests</span>
-                                <span><i class="bi bi-cup-hot text-gold me-1"></i> Breakfast</span>
-                            </div>
-                            <p class="text-muted mb-4">A luxurious suite featuring a separate living area, panoramic city views, and exclusive lounge access.</p>
-                            <a href="booking.php" class="btn btn-outline-navy w-100">Book Now</a>
-                        </div>
-                    </div>
-                </div>
-
-                <!-- Room 3 -->
-                <div class="col-lg-4 col-md-6" data-aos="fade-up" data-aos-delay="300">
-                    <div class="room-card">
-                        <div class="room-img-wrapper">
-                            <img src="https://images.unsplash.com/photo-1582719508461-905c673771fd?ixlib=rb-4.0.3&auto=format&fit=crop&w=800&q=80" alt="Presidential Suite">
-                            <div class="room-price">
-                                <span class="fs-4 fw-bold">Rp 5.5M</span> / night
-                            </div>
-                        </div>
-                        <div class="room-content">
-                            <h3 class="h4 fw-bold text-navy mb-3">Presidential Suite</h3>
-                            <div class="room-amenities d-flex gap-3 mb-4 text-muted fs-7">
-                                <span><i class="bi bi-arrows-fullscreen text-gold me-1"></i> 120 sqm</span>
-                                <span><i class="bi bi-people text-gold me-1"></i> 4 Guests</span>
-                                <span><i class="bi bi-star text-gold me-1"></i> VIP</span>
-                            </div>
-                            <p class="text-muted mb-4">The pinnacle of luxury. Features a private jacuzzi, dedicated butler, and breathtaking 360-degree views.</p>
-                            <a href="booking.php" class="btn btn-outline-navy w-100">Book Now</a>
-                        </div>
-                    </div>
-                </div>
+                    <?php 
+                        $delay += 100;
+                    endforeach; 
+                    ?>
+                <?php endif; ?>
             </div>
             
             <div class="text-center mt-5" data-aos="fade-up">

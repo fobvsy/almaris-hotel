@@ -532,6 +532,8 @@ $rooms = $queryKamar->fetch_all(MYSQLI_ASSOC);
                                     <option value="Deluxe">Deluxe</option>
                                     <option value="Suite">Suite</option>
                                     <option value="Presidential">Presidential</option>
+                                    <option value="Exclusive">Exclusive</option>
+                                    <option value="Family">Family</option>
                                 </select>
                             </div>
                         </div>
@@ -585,6 +587,8 @@ $rooms = $queryKamar->fetch_all(MYSQLI_ASSOC);
                                     <option value="Deluxe">Deluxe</option>
                                     <option value="Suite">Suite</option>
                                     <option value="Presidential">Presidential</option>
+                                    <option value="Exclusive">Exclusive</option>
+                                    <option value="Family">Family</option>
                                 </select>
                             </div>
                         </div>

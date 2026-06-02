@@ -7,7 +7,7 @@ $typeFilter = $_GET['type'] ?? '';
 $sortOption = $_GET['sort'] ?? 'recommended';
 
 $whereClause = "";
-$orderBy = "GROUP BY tipe_kamar";
+$orderBy = "GROUP BY tipe_kamar ORDER BY tipe_kamar";
 
 if (!empty($typeFilter)) {
     $typeEscaped = $koneksi->real_escape_string($typeFilter);
@@ -163,6 +163,8 @@ if (isset($_SESSION['alert'])) {
                             <option value="Deluxe" <?= stripos($typeFilter, 'Deluxe') !== false ? 'selected' : '' ?>>Deluxe Room</option>
                             <option value="Suite" <?= stripos($typeFilter, 'Suite') !== false ? 'selected' : '' ?>>Suite / Executive</option>
                             <option value="Presidential" <?= stripos($typeFilter, 'Presidential') !== false ? 'selected' : '' ?>>Presidential Suite</option>
+                            <option value="Exclusive" <?= stripos($typeFilter, 'Exclusive') !== false ? 'selected' : '' ?>>Exclusive</option>
+                            <option value="Family" <?= stripos($typeFilter, 'Family') !== false ? 'selected' : '' ?>>Family</option>
                         </select>
                     </div>
                 </div>

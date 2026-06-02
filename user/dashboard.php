@@ -26,6 +26,12 @@ mysqli_stmt_execute($stmt);
 $result = mysqli_stmt_get_result($stmt);
 $userData = mysqli_fetch_assoc($result);
 $dbEmail = htmlspecialchars($userData['email'] ?? '');
+
+// Fetch active reservations count
+$queryActiveRes = $koneksi->prepare("SELECT COUNT(*) as total FROM reservasi WHERE id_user = ? AND status != 'checkout'");
+$queryActiveRes->bind_param("i", $userId);
+$queryActiveRes->execute();
+$activeReservationsCount = $queryActiveRes->get_result()->fetch_assoc()['total'];
 ?>
 <!DOCTYPE html>
 <html lang="en">
@@ -153,8 +159,8 @@ $dbEmail = htmlspecialchars($userData['email'] ?? '');
                             <div class="dashboard-card d-flex align-items-center" style="border: 1px solid var(--color-gold);">
                                 <div class="stat-icon icon-gold mb-0 me-4"><i class="bi bi-bell"></i></div>
                                 <div>
-                                    <h2 class="fw-bold text-navy mb-0">1</h2>
-                                    <p class="text-muted mb-0">Active Reservation</p>
+                                    <h2 class="fw-bold text-navy mb-0"><?= $activeReservationsCount ?></h2>
+                                    <p class="text-muted mb-0">Active Reservation<?= $activeReservationsCount != 1 ? 's' : '' ?></p>
                                 </div>
                             </div>
                         </div>
