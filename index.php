@@ -278,7 +278,7 @@ if ($queryFeatured) {
                             <i class="bi bi-shop"></i>
                         </div>
                         <h4 class="fw-bold text-navy mb-3">Restoran</h4>
-                        <p class="text-muted fs-7 mb-0">Nikmati hidangan lezat dan berkualitas tinggi yang disajikan khusus untuk Anda.</p>
+                        <p class="text-muted fs-7 mb-0">Enjoy delicious, high-quality dishes prepared especially for you.</p>
                     </div>
                 </div>
                 <div class="col-lg-3 col-md-6" data-aos="fade-up" data-aos-delay="300">
@@ -305,7 +305,7 @@ if ($queryFeatured) {
                             <i class="bi bi-easel"></i>
                         </div>
                         <h4 class="fw-bold text-navy mb-3">Meeting Room</h4>
-                        <p class="text-muted fs-7 mb-0">Ruang pertemuan modern dengan fasilitas lengkap untuk keperluan bisnis Anda.</p>
+                        <p class="text-muted fs-7 mb-0">A modern meeting room with all the amenities you need for your business needs.</p>
                     </div>
                 </div>
                 <div class="col-lg-3 col-md-6" data-aos="fade-up" data-aos-delay="600">
@@ -314,7 +314,7 @@ if ($queryFeatured) {
                             <i class="bi bi-bicycle"></i>
                         </div>
                         <h4 class="fw-bold text-navy mb-3">Fitness Center</h4>
-                        <p class="text-muted fs-7 mb-0">Tetap bugar selama menginap dengan pusat kebugaran mutakhir kami.</p>
+                        <p class="text-muted fs-7 mb-0">Stay in shape during your stay with our state-of-the-art fitness center.</p>
                     </div>
                 </div>
                 <div class="col-lg-3 col-md-6" data-aos="fade-up" data-aos-delay="700">
@@ -323,7 +323,7 @@ if ($queryFeatured) {
                             <i class="bi bi-stars"></i>
                         </div>
                         <h4 class="fw-bold text-navy mb-3">Laundry Service</h4>
-                        <p class="text-muted fs-7 mb-0">Layanan laundry profesional agar pakaian Anda selalu bersih dan segar.</p>
+                        <p class="text-muted fs-7 mb-0">Professional laundry service to keep your clothes clean and fresh.</p>
                     </div>
                 </div>
                 <div class="col-lg-3 col-md-6" data-aos="fade-up" data-aos-delay="800">
@@ -345,7 +345,7 @@ if ($queryFeatured) {
             <div class="row gy-5">
                 <div class="col-lg-4 col-md-6 pe-lg-5">
                     <a class="navbar-brand fw-bold text-white fs-2 mb-4 d-block" href="#">ALMARIS</a>
-                    <p class="text-white-50 mb-4">Almaris Hotel Reservation Website memberikan pengalaman reservasi yang mudah, cepat, dan terpercaya untuk liburan sempurna Anda.</p>
+                    <p class="text-white-50 mb-4">The Almaris Hotel Reservation Website offers an easy, fast, and reliable booking experience for your perfect vacation.</p>
                     <div class="social-links d-flex gap-3">
                         <a href="#"><i class="bi bi-facebook"></i></a>
                         <a href="#"><i class="bi bi-instagram"></i></a>
