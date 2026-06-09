@@ -91,9 +91,9 @@ if ($queryFeatured) {
                     <p class="lead text-white-50 mb-5">Discover a world of comfort, elegance, and impeccable service at Almaris Hotel. Your perfect staycation begins here.</p>
                     <div class="d-flex gap-3">
                         <a href="#rooms" class="btn btn-gold btn-lg">Explore Rooms <i class="bi bi-arrow-right ms-2"></i></a>
-                        <button class="btn btn-outline-light btn-lg d-flex align-items-center gap-2">
+                        <a href="https://youtu.be/cdKx1Zv3YKs?si=XQ38Ww_JImh9uax8" target="_blank" class="btn btn-outline-light btn-lg d-flex align-items-center gap-2">
                             <i class="bi bi-play-circle-fill"></i> Watch Video
-                        </button>
+                        </a>
                     </div>
                 </div>
             </div>
