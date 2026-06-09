@@ -13,7 +13,7 @@ if (!isset($_SESSION['user_id'])) {
 
 
 // Fetch available rooms for the dropdown
-$stmtRooms = $koneksi->prepare("SELECT id_kamar, tipe_kamar, harga FROM kamar WHERE status = 'tersedia'");
+$stmtRooms = $koneksi->prepare("SELECT id_kamar, nomor_kamar, tipe_kamar, harga FROM kamar WHERE status = 'tersedia'");
 $stmtRooms->execute();
 $availableRooms = $stmtRooms->get_result()->fetch_all(MYSQLI_ASSOC);
 
@@ -274,7 +274,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                                             <option value="" disabled selected>Choose your room...</option>
                                             <?php foreach ($availableRooms as $room): ?>
                                                 <option value="<?= $room['id_kamar'] ?>" data-name="<?= htmlspecialchars($room['tipe_kamar']) ?>" data-price="<?= $room['harga'] ?>">
-                                                    <?= htmlspecialchars($room['tipe_kamar']) ?> (Rp <?= number_format($room['harga'], 0, ',', '.') ?> / Night)
+                                                    <?= htmlspecialchars($room['nomor_kamar']) ?> -> Room - <?= htmlspecialchars($room['tipe_kamar']) ?> (Rp <?= number_format($room['harga'], 0, ',', '.') ?> / Night)
                                                 </option>
                                             <?php endforeach; ?>
                                         </select>
