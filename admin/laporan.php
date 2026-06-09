@@ -437,7 +437,7 @@ foreach ($reservations as $res) {
             
             <!-- Pagination (UI only) -->
             <div class="pagination-container d-flex justify-content-between align-items-center mt-4 pt-3 border-top">
-                <span class="text-muted" style="font-size: 0.85rem;">Showing 1 to 4 of 124 entries</span>
+                <!-- <span class="text-muted" style="font-size: 0.85rem;">Showing 1 to 4 of 124 entries</span> -->
                 <nav>
                     <ul class="pagination pagination-sm mb-0">
                         <li class="page-item disabled"><a class="page-link" href="#">Previous</a></li>
