@@ -1,11 +1,4 @@
 <?php
-// ============================================================
-//  Almaris Hotel Reservation Website
-//  File    : config/koneksi.php
-//  Purpose : Database connection configuration
-//  DB      : almaris_hotel_db (MySQL via XAMPP)
-// ============================================================
-
 define('DB_HOST', 'localhost');
 define('DB_USER', 'root');
 define('DB_PASS', '');

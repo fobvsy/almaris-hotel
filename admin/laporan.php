@@ -192,11 +192,13 @@ foreach ($reservations as $res) {
         /* Table Styling */
         .table-responsive {
             border-radius: 12px;
-            overflow: hidden;
+            overflow-x: auto;
+            -webkit-overflow-scrolling: touch;
         }
 
         .table {
             margin-bottom: 0;
+            white-space: nowrap;
         }
 
         .table thead th {
@@ -289,9 +291,69 @@ foreach ($reservations as $res) {
                 border-bottom: 2px solid #D4AF37;
             }
         }
+        /* Mobile Responsiveness */
+        .mobile-navbar {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 60px;
+            background-color: var(--primary);
+            z-index: 998;
+            align-items: center;
+            padding: 0 20px;
+            justify-content: space-between;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+
+        .mobile-nav-toggle {
+            background: none;
+            border: none;
+            color: var(--accent);
+            font-size: 1.5rem;
+            cursor: pointer;
+        }
+
+        @media (max-width: 768px) {
+            #sidebar {
+                transform: translateX(-100%);
+            }
+            #sidebar.show {
+                transform: translateX(0);
+                box-shadow: 4px 0 10px rgba(0,0,0,0.1);
+            }
+            #main-content {
+                margin-left: 0;
+                padding: 15px;
+                padding-top: 80px;
+            }
+            .mobile-navbar {
+                display: flex;
+            }
+            .page-header {
+                flex-direction: column;
+                align-items: flex-start;
+                gap: 15px;
+            }
+            .user-profile {
+                align-self: flex-start;
+                margin-top: 10px;
+            }
+        }
     </style>
 </head>
 <body>
+
+    <!-- Mobile Navbar -->
+    <div class="mobile-navbar">
+        <div class="brand-text text-white fw-bold" style="font-family: 'Montserrat', sans-serif; font-size: 1.2rem; letter-spacing: 1px;">
+            ALMARIS <span style="color: var(--accent);">Admin</span>
+        </div>
+        <button class="mobile-nav-toggle" id="mobileNavToggle">
+            <i class="fas fa-bars"></i>
+        </button>
+    </div>
 
     <!-- Sidebar -->
     <nav id="sidebar">
@@ -463,6 +525,16 @@ foreach ($reservations as $res) {
                     confirmButtonColor: '#0F172A'
                 });
             <?php endif; ?>
+        });
+    </script>
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            const toggleBtn = document.getElementById('mobileNavToggle');
+            if (toggleBtn) {
+                toggleBtn.addEventListener('click', function() {
+                    document.getElementById('sidebar').classList.toggle('show');
+                });
+            }
         });
     </script>
 </body>

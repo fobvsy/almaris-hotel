@@ -1,23 +1,18 @@
-/**
- * ALMARIS HOTEL
- * Custom JavaScript for Booking Page Interactions
- */
-
-document.addEventListener('DOMContentLoaded', function() {
+document.addEventListener('DOMContentLoaded', function () {
     const roomSelect = document.getElementById('roomSelect');
-    const checkIn    = document.getElementById('checkIn');
-    const checkOut   = document.getElementById('checkOut');
+    const checkIn = document.getElementById('checkIn');
+    const checkOut = document.getElementById('checkOut');
 
-    const summaryRoomName      = document.getElementById('summaryRoomName');
+    const summaryRoomName = document.getElementById('summaryRoomName');
     const summaryPricePerNight = document.getElementById('summaryPricePerNight');
-    const summaryNights        = document.getElementById('summaryNights');
-    const summaryTotalPrice    = document.getElementById('summaryTotalPrice');
-    const summaryImage         = document.getElementById('summaryImage');
+    const summaryNights = document.getElementById('summaryNights');
+    const summaryTotalPrice = document.getElementById('summaryTotalPrice');
+    const summaryImage = document.getElementById('summaryImage');
 
     // Hidden inputs for PHP backend
-    const roomIdInput     = document.getElementById('roomIdInput');
-    const checkInHidden   = document.getElementById('checkInHidden');
-    const checkOutHidden  = document.getElementById('checkOutHidden');
+    const roomIdInput = document.getElementById('roomIdInput');
+    const checkInHidden = document.getElementById('checkInHidden');
+    const checkOutHidden = document.getElementById('checkOutHidden');
     const totalHargaInput = document.getElementById('totalHargaInput');
 
     // Format number to Rupiah
@@ -37,7 +32,7 @@ document.addEventListener('DOMContentLoaded', function() {
 
         let pricePerNight = 0;
         let roomName = null;
-        
+
         if (roomSelect.selectedIndex >= 0 && roomSelect.options[roomSelect.selectedIndex].value !== "") {
             let opt = roomSelect.options[roomSelect.selectedIndex];
             pricePerNight = parseInt(opt.getAttribute('data-price')) || 0;
@@ -45,8 +40,8 @@ document.addEventListener('DOMContentLoaded', function() {
         }
 
 
-        let date1  = new Date(checkIn.value);
-        let date2  = new Date(checkOut.value);
+        let date1 = new Date(checkIn.value);
+        let date2 = new Date(checkOut.value);
         let nights = 1;
 
         if (checkIn.value && checkOut.value) {
@@ -69,9 +64,9 @@ document.addEventListener('DOMContentLoaded', function() {
         if (summaryTotalPrice) summaryTotalPrice.innerText = formatRupiah(totalPrice);
 
         // Sync hidden fields for PHP
-        if (roomIdInput)     roomIdInput.value     = roomSelect.value;
-        if (checkInHidden)   checkInHidden.value   = checkIn.value;
-        if (checkOutHidden)  checkOutHidden.value  = checkOut.value;
+        if (roomIdInput) roomIdInput.value = roomSelect.value;
+        if (checkInHidden) checkInHidden.value = checkIn.value;
+        if (checkOutHidden) checkOutHidden.value = checkOut.value;
         if (totalHargaInput) totalHargaInput.value = totalPrice;
 
         // Room image swap
@@ -89,21 +84,21 @@ document.addEventListener('DOMContentLoaded', function() {
     };
 
     // Set default dates: today and tomorrow
-    const today    = new Date();
+    const today = new Date();
     const tomorrow = new Date(today);
     tomorrow.setDate(tomorrow.getDate() + 1);
 
-    if (checkIn)  checkIn.valueAsDate  = today;
+    if (checkIn) checkIn.valueAsDate = today;
     if (checkOut) checkOut.valueAsDate = tomorrow;
 
     // Prevent selecting past dates
-    if (checkIn)  checkIn.min  = today.toISOString().split('T')[0];
+    if (checkIn) checkIn.min = today.toISOString().split('T')[0];
     if (checkOut) checkOut.min = tomorrow.toISOString().split('T')[0];
 
     // Event Listeners
     if (roomSelect) roomSelect.addEventListener('change', calculatePrice);
     if (checkIn) {
-        checkIn.addEventListener('change', function() {
+        checkIn.addEventListener('change', function () {
             const minCheckOut = new Date(checkIn.value);
             minCheckOut.setDate(minCheckOut.getDate() + 1);
             if (checkOut) {
@@ -120,10 +115,10 @@ document.addEventListener('DOMContentLoaded', function() {
     // Ensure hidden fields are synced just before form submission
     const bookingForm = document.getElementById('bookingForm');
     if (bookingForm) {
-        bookingForm.addEventListener('submit', function(e) {
-            if (roomIdInput)     roomIdInput.value     = roomSelect ? roomSelect.value : '';
-            if (checkInHidden)   checkInHidden.value   = checkIn  ? checkIn.value  : '';
-            if (checkOutHidden)  checkOutHidden.value  = checkOut ? checkOut.value : '';
+        bookingForm.addEventListener('submit', function (e) {
+            if (roomIdInput) roomIdInput.value = roomSelect ? roomSelect.value : '';
+            if (checkInHidden) checkInHidden.value = checkIn ? checkIn.value : '';
+            if (checkOutHidden) checkOutHidden.value = checkOut ? checkOut.value : '';
             if (totalHargaInput) totalHargaInput.value = currentTotalPrice;
 
             if (!roomSelect || !roomSelect.value || !checkIn || !checkIn.value ||

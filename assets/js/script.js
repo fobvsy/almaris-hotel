@@ -1,8 +1,3 @@
-/**
- * ALMARIS HOTEL
- * Custom JavaScript for Landing Page Interactions
- */
-
 document.addEventListener('DOMContentLoaded', () => {
     // 1. Initialize AOS Animation Library
     if (typeof AOS !== 'undefined') {
