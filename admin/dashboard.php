@@ -236,6 +236,93 @@ if (isset($_SESSION['alert'])) {
         .status-pending { background-color: #FEF3C7; color: #92400E; }
         .status-checkin { background-color: #D1FAE5; color: #065F46; }
         .status-checkout { background-color: #E5E7EB; color: #4B5563; }
+        
+        /* Dark Mode Styles */
+        body.dark-mode {
+            --bg-main: #0f172a;
+            --bg-white: #1e293b;
+            --text-main: #f8fafc;
+            --text-muted: #94a3b8;
+        }
+        body.dark-mode .page-title,
+        body.dark-mode .stat-info h3,
+        body.dark-mode h5,
+        body.dark-mode .modal-title,
+        body.dark-mode .form-label,
+        body.dark-mode .text-primary {
+            color: #f8fafc !important;
+        }
+        body.dark-mode .table thead th {
+            background-color: #334155;
+            color: #f8fafc;
+            border-bottom-color: #475569;
+        }
+        body.dark-mode .table tbody td {
+            border-bottom-color: #334155;
+            color: #f8fafc;
+        }
+        body.dark-mode .table-hover tbody tr:hover td {
+            background-color: #475569;
+            color: #f8fafc;
+        }
+        body.dark-mode .form-control, 
+        body.dark-mode .form-select {
+            background-color: #0f172a;
+            border-color: #334155;
+            color: #f8fafc;
+        }
+        body.dark-mode .form-control:focus, 
+        body.dark-mode .form-select:focus {
+            background-color: #0f172a;
+            color: #f8fafc;
+        }
+        body.dark-mode .modal-content {
+            background-color: #1e293b;
+        }
+        body.dark-mode .modal-header,
+        body.dark-mode .modal-footer {
+            border-color: #334155;
+        }
+        body.dark-mode .bg-light {
+            background-color: #334155 !important;
+        }
+        body.dark-mode .input-group-text {
+            background-color: #0f172a !important;
+            border-color: #334155;
+            color: #94a3b8;
+        }
+        body.dark-mode .btn-light {
+            background-color: #334155;
+            color: #f8fafc;
+            border-color: #475569;
+        }
+        body.dark-mode .btn-light:hover {
+            background-color: #475569;
+            color: #f8fafc;
+        }
+        body.dark-mode .pagination .page-link {
+            background-color: #1e293b;
+            border-color: #334155;
+        }
+        body.dark-mode .pagination .page-item.active .page-link {
+            background-color: var(--primary);
+            border-color: var(--primary);
+        }
+        body.dark-mode .btn-outline-primary {
+            border-color: #f8fafc;
+            color: #f8fafc;
+        }
+        body.dark-mode .btn-outline-primary:hover {
+            background-color: #f8fafc;
+            color: #0f172a;
+        }
+        body.dark-mode .modern-card {
+            background-color: #1e293b;
+        }
+        body.dark-mode .stat-icon.users { background-color: #1e3a8a; color: #60a5fa; }
+        body.dark-mode .stat-icon.reservations { background-color: #064e3b; color: #34d399; }
+        body.dark-mode .text-muted { color: #94a3b8 !important; }
+
         /* Mobile Responsiveness */
         .mobile-navbar {
             display: none;
@@ -325,7 +412,10 @@ if (isset($_SESSION['alert'])) {
             <a href="laporan.php" class="nav-item">
                 <i class="fas fa-chart-line"></i> Reports
             </a>
-            <a href="../logout.php" class="nav-item mt-5 text-danger">
+            <a href="#" class="nav-item mt-3" id="darkModeToggle">
+                <i class="fas fa-moon"></i> Dark Mode
+            </a>
+            <a href="../logout.php" class="nav-item mt-2 text-danger">
                 <i class="fas fa-sign-out-alt text-danger"></i> Logout
             </a>
         </div>
@@ -451,6 +541,34 @@ if (isset($_SESSION['alert'])) {
                     document.getElementById('sidebar').classList.toggle('show');
                 });
             }
+        });
+    </script>
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            const darkModeToggle = document.getElementById('darkModeToggle');
+            const body = document.body;
+            if (!darkModeToggle) return;
+            const icon = darkModeToggle.querySelector('i');
+            
+            if (localStorage.getItem('adminDarkMode') === 'enabled') {
+                body.classList.add('dark-mode');
+                icon.classList.remove('fa-moon');
+                icon.classList.add('fa-sun');
+            }
+            
+            darkModeToggle.addEventListener('click', function(e) {
+                e.preventDefault();
+                body.classList.toggle('dark-mode');
+                if (body.classList.contains('dark-mode')) {
+                    localStorage.setItem('adminDarkMode', 'enabled');
+                    icon.classList.remove('fa-moon');
+                    icon.classList.add('fa-sun');
+                } else {
+                    localStorage.setItem('adminDarkMode', 'disabled');
+                    icon.classList.remove('fa-sun');
+                    icon.classList.add('fa-moon');
+                }
+            });
         });
     </script>
 </body>
